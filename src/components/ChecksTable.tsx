@@ -38,7 +38,7 @@ const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
 
     // Apply filters
     if (columnFilter) {
-      result = result.filter((check) => check.columnName === columnFilter);
+      result = result.filter((check) => check.column === columnFilter);
     }
     if (categoryFilter) {
       result = result.filter((check) => check.category === categoryFilter);
@@ -47,7 +47,7 @@ const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
     // Apply sorting
     if (columnSort) {
       result.sort((a, b) => {
-        const comparison = a.columnName.localeCompare(b.columnName);
+        const comparison = a.column.localeCompare(b.column);
         return columnSort === "asc" ? comparison : -comparison;
       });
     } else if (categorySort) {
@@ -212,7 +212,7 @@ const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
             ) : (
               filteredAndSortedChecks.map((check) => (
                 <TableRow key={check.id} className="hover:bg-muted/30">
-                  <TableCell className="font-mono text-sm">{check.columnName}</TableCell>
+                  <TableCell className="font-mono text-sm">{check.column}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={getCategoryColor(check.category)}>
                       {check.category}
