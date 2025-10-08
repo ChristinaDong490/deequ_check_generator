@@ -28,7 +28,17 @@ interface AddCheckDialogProps {
 }
 
 const COLUMN_NAMES = ["FILE_AIRBAG_CODE", "RECYCLED_PART_AMT", "TOWING_AMT"];
-const CATEGORIES = ["completeness", "uniqueness", "size"];
+const CATEGORIES = [
+  "Completeness",
+  "ContainedIn",
+  "Pattern",
+  "Satisfies",
+  "DataType",
+  "Uniqueness",
+  "Row Count",
+  "Numeric Ranges",
+  "Other"
+];
 
 const AddCheckDialog = ({
   open,
