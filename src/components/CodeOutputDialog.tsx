@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
+import { generateCode } from "@/lib/api";
 
 interface CodeOutputDialogProps {
   open: boolean;
@@ -25,62 +26,38 @@ const CodeOutputDialog = ({
   dataPath,
 }: CodeOutputDialogProps) => {
   const [copied, setCopied] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateCode = () => {
-    const checksByCategory = checks.reduce((acc, check) => {
-      if (!acc[check.category]) {
-        acc[check.category] = [];
-      }
-      acc[check.category].push(check);
-      return acc;
-    }, {} as Record<string, DataCheck[]>);
+  useEffect(() => {
+    if (open) {
+      fetchGeneratedCode();
+    }
+  }, [open, checks]);
 
-    let code = `// Deequ Quality Checks
-// Generated for: ${dataPath || "data path not specified"}
+  const fetchGeneratedCode = async () => {
+    setIsGenerating(true);
+    try {
+      const apiRows = checks.map(check => ({
+        column_name: check.columnName,
+        category: check.category,
+        description: check.description,
+        code: check.code || "",
+        include: check.include ?? true,
+      }));
 
-import com.amazon.deequ.VerificationSuite
-import com.amazon.deequ.checks.{Check, CheckLevel}
-
-val verificationResult = VerificationSuite()
-  .onData(df)
-  .addCheck(
-    Check(CheckLevel.Error, "Data Quality Checks")
-`;
-
-    Object.entries(checksByCategory).forEach(([category, categoryChecks]) => {
-      code += `\n      // ${category.charAt(0).toUpperCase() + category.slice(1)} checks\n`;
-      categoryChecks.forEach((check) => {
-        code += `      // ${check.description}\n`;
-        
-        if (category === "completeness") {
-          code += `      .hasCompleteness("${check.columnName}", _ >= 0.95)\n`;
-        } else if (category === "uniqueness") {
-          code += `      .hasUniqueness("${check.columnName}", _ >= 0.95)\n`;
-        } else if (category === "size") {
-          code += `      .hasSize(_ > 0)\n`;
-        }
-      });
-    });
-
-    code += `  )
-  .run()
-
-// Check results
-if (verificationResult.status == CheckStatus.Success) {
-  println("All checks passed!")
-} else {
-  println("Some checks failed:")
-  verificationResult.checkResults.foreach { case (check, result) =>
-    println(s"Check: \${check.description}, Status: \${result.status}")
-  }
-}`;
-
-    return code;
+      const response = await generateCode(apiRows, "Error", "Data Quality Checks");
+      setGeneratedCode(response.code);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to generate code");
+      setGeneratedCode("// Error generating code");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleCopy = () => {
-    const code = generateCode();
-    navigator.clipboard.writeText(code);
+    navigator.clipboard.writeText(generatedCode);
     setCopied(true);
     toast.success("Code copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
@@ -98,7 +75,9 @@ if (verificationResult.status == CheckStatus.Success) {
 
         <div className="relative">
           <pre className="bg-muted p-4 rounded-lg overflow-auto max-h-[500px] text-sm">
-            <code className="text-foreground">{generateCode()}</code>
+            <code className="text-foreground">
+              {isGenerating ? "Generating code..." : generatedCode}
+            </code>
           </pre>
           <Button
             size="sm"
