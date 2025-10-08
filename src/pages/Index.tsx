@@ -11,31 +11,34 @@ import { suggestChecks } from "@/lib/api";
 
 export interface DataCheck {
   id: string;
-  columnName: string;
+  column: string;
   category: string;
   description: string;
+  rule?: string;
   code?: string;
+  current_value?: string;
   include?: boolean;
 }
 
 const Index = () => {
   const [dataPath, setDataPath] = useState("");
+  const [keyCols, setKeyCols] = useState("");
   const [checks, setChecks] = useState<DataCheck[]>([
     {
       id: "1",
-      columnName: "FILE_AIRBAG_CODE",
+      column: "FILE_AIRBAG_CODE",
       category: "completeness",
       description: "FILE_AIRBAG_CODE has value range 'N', 'Y', 'U'",
     },
     {
       id: "2",
-      columnName: "FILE_AIRBAG_CODE",
+      column: "FILE_AIRBAG_CODE",
       category: "uniqueness",
       description: "FILE_AIRBAG_CODE has value range 'N' for at least 94.0% of values",
     },
     {
       id: "3",
-      columnName: "RECYCLED_PART_AMT",
+      column: "RECYCLED_PART_AMT",
       category: "size",
       description: "RECYCLED_PART_AMT is within expected numeric range",
     },
@@ -53,13 +56,21 @@ const Index = () => {
     
     setIsLoadingSuggestions(true);
     try {
-      const response = await suggestChecks(dataPath);
-      const newChecks = response.rows.map((row, index) => ({
-        id: `${Date.now()}-${index}`,
-        columnName: row.column_name,
-        category: row.category,
-        description: row.description,
+      const keyColsArray = keyCols.trim() 
+        ? keyCols.split(',').map(col => col.trim()).filter(Boolean)
+        : [];
+      
+      const response = await suggestChecks(dataPath, keyColsArray);
+      const newChecks = response.rows.map((row) => ({
+        id: row.id,
+        column: row.column,
+        category: row.description?.toLowerCase().includes('complete') ? 'completeness' 
+                 : row.description?.toLowerCase().includes('unique') ? 'uniqueness' 
+                 : 'size',
+        description: row.description || '',
+        rule: row.rule,
         code: row.code,
+        current_value: row.current_value,
         include: true,
       }));
       setChecks(newChecks);
@@ -120,27 +131,40 @@ const Index = () => {
 
         {/* Data Path Input */}
         <Card className="p-6 mb-6 shadow-lg border-border/50 backdrop-blur-sm bg-card/80">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             <div className="flex-1">
               <label className="text-sm font-medium mb-2 block text-foreground">
                 Data Path
               </label>
               <Input
-                placeholder="Enter your data path (e.g., s3://bucket/data.parquet)"
+                placeholder="e.g., /mnt/data-engineering-share/data/internal/.../PER_DAY_CODE=01"
                 value={dataPath}
                 onChange={(e) => setDataPath(e.target.value)}
                 className="font-mono"
               />
             </div>
-            <div className="flex items-end">
-              <Button 
-                onClick={handleGetSuggestions} 
-                className="gap-2"
-                disabled={isLoadingSuggestions}
-              >
-                <Sparkles className="h-4 w-4" />
-                {isLoadingSuggestions ? "Loading..." : "Get Suggestions"}
-              </Button>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <label className="text-sm font-medium mb-2 block text-foreground">
+                  Key Columns (optional, comma-separated)
+                </label>
+                <Input
+                  placeholder="e.g., primary_key,FILESUFFIX"
+                  value={keyCols}
+                  onChange={(e) => setKeyCols(e.target.value)}
+                  className="font-mono"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  onClick={handleGetSuggestions} 
+                  className="gap-2"
+                  disabled={isLoadingSuggestions}
+                >
+                  <Sparkles className="h-4 w-4" />
+                  {isLoadingSuggestions ? "Loading..." : "Get Suggestions"}
+                </Button>
+              </div>
             </div>
           </div>
         </Card>
