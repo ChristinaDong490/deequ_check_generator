@@ -7,12 +7,15 @@ import { toast } from "sonner";
 import ChecksTable from "@/components/ChecksTable";
 import AddCheckDialog from "@/components/AddCheckDialog";
 import CodeOutputDialog from "@/components/CodeOutputDialog";
+import { suggestChecks } from "@/lib/api";
 
 export interface DataCheck {
   id: string;
   columnName: string;
   category: string;
   description: string;
+  code?: string;
+  include?: boolean;
 }
 
 const Index = () => {
@@ -40,13 +43,32 @@ const Index = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
   const [editingCheck, setEditingCheck] = useState<DataCheck | null>(null);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
-  const handleGetSuggestions = () => {
+  const handleGetSuggestions = async () => {
     if (!dataPath.trim()) {
       toast.error("Please enter a data path");
       return;
     }
-    toast.success("Fetching Deequ check suggestions...");
+    
+    setIsLoadingSuggestions(true);
+    try {
+      const response = await suggestChecks(dataPath);
+      const newChecks = response.rows.map((row, index) => ({
+        id: `${Date.now()}-${index}`,
+        columnName: row.column_name,
+        category: row.category,
+        description: row.description,
+        code: row.code,
+        include: true,
+      }));
+      setChecks(newChecks);
+      toast.success(`Loaded ${response.row_count} suggested checks`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to fetch suggestions");
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
   };
 
   const handleAddCheck = (check: Omit<DataCheck, "id">) => {
@@ -111,9 +133,13 @@ const Index = () => {
               />
             </div>
             <div className="flex items-end">
-              <Button onClick={handleGetSuggestions} className="gap-2">
+              <Button 
+                onClick={handleGetSuggestions} 
+                className="gap-2"
+                disabled={isLoadingSuggestions}
+              >
                 <Sparkles className="h-4 w-4" />
-                Get Suggestions
+                {isLoadingSuggestions ? "Loading..." : "Get Suggestions"}
               </Button>
             </div>
           </div>
