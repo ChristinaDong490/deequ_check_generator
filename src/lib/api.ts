@@ -1,14 +1,17 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export interface SuggestRequest {
-  data_path: string;
+  path: string;
+  key_cols?: string[];
 }
 
 export interface SuggestRow {
-  column_name: string;
-  category: string;
+  id: string;
+  column: string;
   description: string;
+  rule?: string;
   code: string;
+  current_value?: string;
   include?: boolean;
 }
 
@@ -27,13 +30,16 @@ export interface GenerateResponse {
   code: string;
 }
 
-export const suggestChecks = async (dataPath: string): Promise<SuggestResponse> => {
+export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
   const response = await fetch(`${API_BASE_URL}/suggest`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ data_path: dataPath }),
+    body: JSON.stringify({ 
+      path,
+      key_cols: keyCols || []
+    }),
   });
 
   if (!response.ok) {
