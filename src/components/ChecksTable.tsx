@@ -25,7 +25,17 @@ interface ChecksTableProps {
 }
 
 const COLUMN_NAMES = ["FILE_AIRBAG_CODE", "RECYCLED_PART_AMT", "TOWING_AMT"];
-const CATEGORIES = ["completeness", "uniqueness", "size"];
+const CATEGORIES = [
+  "Completeness",
+  "ContainedIn",
+  "Pattern",
+  "Satisfies",
+  "DataType",
+  "Uniqueness",
+  "Row Count",
+  "Numeric Ranges",
+  "Other"
+];
 
 const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
   const [columnFilter, setColumnFilter] = useState<string | null>(null);
@@ -76,12 +86,22 @@ const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case "completeness":
+      case "Completeness":
         return "bg-primary/10 text-primary border-primary/20";
-      case "uniqueness":
+      case "Uniqueness":
         return "bg-accent/10 text-accent border-accent/20";
-      case "size":
-        return "bg-muted text-muted-foreground border-border";
+      case "ContainedIn":
+        return "bg-blue-500/10 text-blue-600 border-blue-500/20";
+      case "Pattern":
+        return "bg-purple-500/10 text-purple-600 border-purple-500/20";
+      case "Satisfies":
+        return "bg-green-500/10 text-green-600 border-green-500/20";
+      case "DataType":
+        return "bg-yellow-500/10 text-yellow-600 border-yellow-500/20";
+      case "Row Count":
+        return "bg-orange-500/10 text-orange-600 border-orange-500/20";
+      case "Numeric Ranges":
+        return "bg-pink-500/10 text-pink-600 border-pink-500/20";
       default:
         return "bg-secondary text-secondary-foreground border-border";
     }
