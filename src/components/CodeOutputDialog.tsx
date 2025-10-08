@@ -39,10 +39,12 @@ const CodeOutputDialog = ({
     setIsGenerating(true);
     try {
       const apiRows = checks.map(check => ({
-        column_name: check.columnName,
-        category: check.category,
+        id: check.id,
+        column: check.column,
         description: check.description,
+        rule: check.rule,
         code: check.code || "",
+        current_value: check.current_value,
         include: check.include ?? true,
       }));
 
