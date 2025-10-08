@@ -42,7 +42,7 @@ const AddCheckDialog = ({
 
   useEffect(() => {
     if (editingCheck) {
-      setColumnName(editingCheck.columnName);
+      setColumnName(editingCheck.column);
       setCategory(editingCheck.category);
       setDescription(editingCheck.description);
     } else {
@@ -58,7 +58,7 @@ const AddCheckDialog = ({
     }
 
     onSave({
-      columnName,
+      column: columnName,
       category,
       description,
     });
