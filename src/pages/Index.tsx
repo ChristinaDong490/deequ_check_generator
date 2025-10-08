@@ -20,6 +20,22 @@ export interface DataCheck {
   include?: boolean;
 }
 
+const getCategoryFromCode = (code?: string): string => {
+  if (!code) return "Other";
+  if (code.includes(".isComplete")) return "Completeness";
+  if (code.includes(".isContainedIn")) return "ContainedIn";
+  if (code.includes(".hasPattern")) return "Pattern";
+  if (code.includes(".satisfies")) return "Satisfies";
+  if (code.includes(".hasDataType")) return "DataType";
+  if (code.includes(".isUnique")) return "Uniqueness";
+  if (code.includes(".hasSize")) return "Row Count";
+  if (code.includes(".hasMin") || code.includes(".hasMean") || 
+      code.includes(".hasMax") || code.includes(".hasStandardDeviation")) {
+    return "Numeric Ranges";
+  }
+  return "Other";
+};
+
 const Index = () => {
   const [dataPath, setDataPath] = useState("");
   const [keyCols, setKeyCols] = useState("");
@@ -27,19 +43,19 @@ const Index = () => {
     {
       id: "1",
       column: "FILE_AIRBAG_CODE",
-      category: "completeness",
+      category: "Completeness",
       description: "FILE_AIRBAG_CODE has value range 'N', 'Y', 'U'",
     },
     {
       id: "2",
       column: "FILE_AIRBAG_CODE",
-      category: "uniqueness",
+      category: "Uniqueness",
       description: "FILE_AIRBAG_CODE has value range 'N' for at least 94.0% of values",
     },
     {
       id: "3",
       column: "RECYCLED_PART_AMT",
-      category: "size",
+      category: "Row Count",
       description: "RECYCLED_PART_AMT is within expected numeric range",
     },
   ]);
@@ -64,9 +80,7 @@ const Index = () => {
       const newChecks = response.rows.map((row) => ({
         id: row.id,
         column: row.column,
-        category: row.description?.toLowerCase().includes('complete') ? 'completeness' 
-                 : row.description?.toLowerCase().includes('unique') ? 'uniqueness' 
-                 : 'size',
+        category: getCategoryFromCode(row.code),
         description: row.description || '',
         rule: row.rule,
         code: row.code,
