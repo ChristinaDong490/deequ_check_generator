@@ -219,13 +219,14 @@ const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
                 </div>
               </TableHead>
               <TableHead className="font-semibold">Description</TableHead>
+              <TableHead className="font-semibold">Current Value</TableHead>
               <TableHead className="font-semibold text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAndSortedChecks.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                   No checks found. Add your first check to get started.
                 </TableCell>
               </TableRow>
@@ -239,6 +240,11 @@ const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm">{check.description}</TableCell>
+                  <TableCell>
+                    <p className="text-xs text-muted-foreground font-mono">
+                      {check.current_value || "-"}
+                    </p>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
