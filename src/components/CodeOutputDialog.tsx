@@ -7,10 +7,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
 import { generateCode } from "@/lib/api";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CodeOutputDialogProps {
   open: boolean;
@@ -58,48 +60,119 @@ const CodeOutputDialog = ({
     }
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedCode);
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
     setCopied(true);
     toast.success("Code copied to clipboard");
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const installCode = "# Installation instructions will be added later";
+  const mysqlCode = "# MySQL code will be added later";
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[80vh] bg-card">
+      <DialogContent className="sm:max-w-[800px] max-h-[85vh] bg-card">
         <DialogHeader>
           <DialogTitle>Generated Deequ Code</DialogTitle>
           <DialogDescription>
-            Copy this code to implement your data quality checks
+            Copy the code sections below to implement your data quality checks
           </DialogDescription>
         </DialogHeader>
 
-        <div className="relative">
-          <pre className="bg-muted p-4 rounded-lg overflow-auto max-h-[500px] text-sm">
-            <code className="text-foreground">
-              {isGenerating ? "Generating code..." : generatedCode}
-            </code>
-          </pre>
-          <Button
-            size="sm"
-            variant="outline"
-            className="absolute top-2 right-2"
-            onClick={handleCopy}
-          >
-            {copied ? (
-              <>
-                <Check className="h-4 w-4 mr-2" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Code
-              </>
-            )}
-          </Button>
-        </div>
+        <Tabs defaultValue="deequ" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="install">Installation</TabsTrigger>
+            <TabsTrigger value="deequ">Deequ Code</TabsTrigger>
+            <TabsTrigger value="mysql">MySQL</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="install" className="mt-4">
+            <div className="relative">
+              <ScrollArea className="h-[450px] w-full rounded-lg border">
+                <pre className="bg-muted p-4 text-sm">
+                  <code className="text-foreground">{installCode}</code>
+                </pre>
+              </ScrollArea>
+              <Button
+                size="sm"
+                variant="outline"
+                className="absolute top-2 right-2"
+                onClick={() => handleCopy(installCode)}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="deequ" className="mt-4">
+            <div className="relative">
+              <ScrollArea className="h-[450px] w-full rounded-lg border">
+                <pre className="bg-muted p-4 text-sm">
+                  <code className="text-foreground">
+                    {isGenerating ? "Generating code..." : generatedCode}
+                  </code>
+                </pre>
+              </ScrollArea>
+              <Button
+                size="sm"
+                variant="outline"
+                className="absolute top-2 right-2"
+                onClick={() => handleCopy(generatedCode)}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="mysql" className="mt-4">
+            <div className="relative">
+              <ScrollArea className="h-[450px] w-full rounded-lg border">
+                <pre className="bg-muted p-4 text-sm">
+                  <code className="text-foreground">{mysqlCode}</code>
+                </pre>
+              </ScrollArea>
+              <Button
+                size="sm"
+                variant="outline"
+                className="absolute top-2 right-2"
+                onClick={() => handleCopy(mysqlCode)}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
