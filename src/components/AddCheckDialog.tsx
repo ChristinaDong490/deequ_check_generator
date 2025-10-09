@@ -17,17 +17,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { DataCheck } from "@/pages/Index";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AddCheckDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (check: Omit<DataCheck, "id">) => void;
   editingCheck: DataCheck | null;
+  availableColumns: string[];
 }
 
-const COLUMN_NAMES = ["FILE_AIRBAG_CODE", "RECYCLED_PART_AMT", "TOWING_AMT"];
 const CATEGORIES = [
   "Completeness",
   "ContainedIn",
@@ -45,10 +60,12 @@ const AddCheckDialog = ({
   onOpenChange,
   onSave,
   editingCheck,
+  availableColumns,
 }: AddCheckDialogProps) => {
   const [columnName, setColumnName] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [openCombobox, setOpenCombobox] = useState(false);
 
   useEffect(() => {
     if (editingCheck) {
@@ -94,18 +111,53 @@ const AddCheckDialog = ({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="column">Column Name</Label>
-            <Select value={columnName} onValueChange={setColumnName}>
-              <SelectTrigger id="column" className="bg-background">
-                <SelectValue placeholder="Select column name" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                {COLUMN_NAMES.map((name) => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={openCombobox}
+                  className="w-full justify-between bg-background"
+                >
+                  {columnName || "Select column name"}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[450px] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search columns..." />
+                  <CommandList>
+                    <CommandEmpty>No column found.</CommandEmpty>
+                    <CommandGroup>
+                      {availableColumns.length > 0 ? (
+                        availableColumns.map((column) => (
+                          <CommandItem
+                            key={column}
+                            value={column}
+                            onSelect={(currentValue) => {
+                              setColumnName(currentValue === columnName ? "" : currentValue);
+                              setOpenCombobox(false);
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                columnName === column ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            {column}
+                          </CommandItem>
+                        ))
+                      ) : (
+                        <CommandItem disabled>
+                          Load suggestions first to see available columns
+                        </CommandItem>
+                      )}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
