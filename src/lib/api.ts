@@ -18,6 +18,7 @@ export interface SuggestRow {
 export interface SuggestResponse {
   rows: SuggestRow[];
   row_count: number;
+  schema?: Array<{ name: string; type: string }>;
 }
 
 export interface GenerateRequest {
@@ -28,6 +29,34 @@ export interface GenerateRequest {
 
 export interface GenerateResponse {
   code: string;
+}
+
+export interface VerifyCodeRequest {
+  path: string;
+  code: string;
+}
+
+export interface ConstraintResult {
+  constraint: string;
+  status: string;
+  message?: string;
+  column?: string;
+  metric?: string;
+  actualValue?: string;
+}
+
+export interface VerifyCodeResponse {
+  total: number;
+  success: number;
+  failure: number;
+  per_constraint: ConstraintResult[];
+  failures: Array<{
+    constraint: string;
+    column: string;
+    message: string;
+    metric: string;
+    actualValue: string;
+  }>;
 }
 
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
@@ -68,6 +97,28 @@ export const generateCode = async (
 
   if (!response.ok) {
     throw new Error(`Failed to generate code: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+export const verifyCode = async (
+  path: string,
+  code: string
+): Promise<VerifyCodeResponse> => {
+  const response = await fetch(`${API_BASE_URL}/verify_code`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      path,
+      code,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to verify code: ${response.statusText}`);
   }
 
   return response.json();
