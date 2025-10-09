@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Database, Plus, Sparkles, Copy, Check } from "lucide-react";
+import { Database, Plus, Sparkles, Copy, Check, Play } from "lucide-react";
 import { toast } from "sonner";
 import ChecksTable from "@/components/ChecksTable";
 import AddCheckDialog from "@/components/AddCheckDialog";
 import CodeOutputDialog from "@/components/CodeOutputDialog";
-import { suggestChecks } from "@/lib/api";
+import VerifyResultsDialog from "@/components/VerifyResultsDialog";
+import { suggestChecks, generateCode, verifyCode, VerifyCodeResponse } from "@/lib/api";
 
 export interface DataCheck {
   id: string;
@@ -39,6 +40,7 @@ const getCategoryFromCode = (code?: string): string => {
 const Index = () => {
   const [dataPath, setDataPath] = useState("");
   const [keyCols, setKeyCols] = useState("");
+  const [schemaColumns, setSchemaColumns] = useState<string[]>([]);
   const [checks, setChecks] = useState<DataCheck[]>([
     {
       id: "1",
@@ -61,8 +63,11 @@ const Index = () => {
   ]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
+  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
   const [editingCheck, setEditingCheck] = useState<DataCheck | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [verifyResults, setVerifyResults] = useState<VerifyCodeResponse | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   const handleGetSuggestions = async () => {
     if (!dataPath.trim()) {
@@ -88,6 +93,12 @@ const Index = () => {
         include: true,
       }));
       setChecks(newChecks);
+      
+      // Extract schema columns
+      if (response.schema) {
+        setSchemaColumns(response.schema.map(s => s.name));
+      }
+      
       toast.success(`Loaded ${response.row_count} suggested checks`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to fetch suggestions");
@@ -123,6 +134,43 @@ const Index = () => {
       return;
     }
     setIsCodeDialogOpen(true);
+  };
+
+  const handlePreviewResults = async () => {
+    if (!dataPath.trim()) {
+      toast.error("Please enter a data path");
+      return;
+    }
+    if (checks.length === 0) {
+      toast.error("Please add at least one check");
+      return;
+    }
+
+    setIsVerifying(true);
+    setIsVerifyDialogOpen(true);
+    
+    try {
+      const apiRows = checks.map(check => ({
+        id: check.id,
+        column: check.column,
+        description: check.description,
+        rule: check.rule,
+        code: check.code || "",
+        current_value: check.current_value,
+        include: check.include ?? true,
+      }));
+
+      const codeResponse = await generateCode(apiRows, "Error", "Data Quality Checks");
+      const verifyResponse = await verifyCode(dataPath, codeResponse.code);
+      
+      setVerifyResults(verifyResponse);
+      toast.success(`Verification complete: ${verifyResponse.success}/${verifyResponse.total} checks passed`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to verify checks");
+      setIsVerifyDialogOpen(false);
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   return (
@@ -203,8 +251,18 @@ const Index = () => {
           </div>
         </Card>
 
-        {/* Generate Button */}
-        <div className="flex justify-end">
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-4">
+          <Button
+            onClick={handlePreviewResults}
+            size="lg"
+            variant="outline"
+            className="gap-2"
+            disabled={isVerifying}
+          >
+            <Play className="h-5 w-5" />
+            {isVerifying ? "Running..." : "Preview Results"}
+          </Button>
           <Button
             onClick={handleGenerate}
             size="lg"
@@ -224,6 +282,7 @@ const Index = () => {
           }}
           onSave={handleAddCheck}
           editingCheck={editingCheck}
+          availableColumns={schemaColumns}
         />
 
         <CodeOutputDialog
@@ -231,6 +290,13 @@ const Index = () => {
           onOpenChange={setIsCodeDialogOpen}
           checks={checks}
           dataPath={dataPath}
+        />
+
+        <VerifyResultsDialog
+          open={isVerifyDialogOpen}
+          onOpenChange={setIsVerifyDialogOpen}
+          results={verifyResults}
+          isLoading={isVerifying}
         />
       </div>
     </div>
