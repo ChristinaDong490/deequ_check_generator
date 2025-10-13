@@ -22,9 +22,9 @@ interface ChecksTableProps {
   checks: DataCheck[];
   onEdit: (check: DataCheck) => void;
   onDelete: (id: string) => void;
+  availableColumns?: string[];
 }
 
-const COLUMN_NAMES = ["FILE_AIRBAG_CODE", "RECYCLED_PART_AMT", "TOWING_AMT"];
 const CATEGORIES = [
   "Completeness",
   "ContainedIn",
@@ -37,11 +37,15 @@ const CATEGORIES = [
   "Other"
 ];
 
-const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
+const ChecksTable = ({ checks, onEdit, onDelete, availableColumns = [] }: ChecksTableProps) => {
   const [columnFilter, setColumnFilter] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [columnSort, setColumnSort] = useState<"asc" | "desc" | null>(null);
   const [categorySort, setCategorySort] = useState<"asc" | "desc" | null>(null);
+
+  const uniqueColumns = availableColumns.length > 0 
+    ? availableColumns 
+    : Array.from(new Set(checks.map((c) => c.column)));
 
   const filteredAndSortedChecks = useMemo(() => {
     let result = [...checks];
@@ -162,8 +166,8 @@ const ChecksTable = ({ checks, onEdit, onDelete }: ChecksTableProps) => {
                           <Filter className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="bg-popover">
-                        {COLUMN_NAMES.map((name) => (
+                      <DropdownMenuContent align="start" className="bg-popover max-h-[300px] overflow-y-auto">
+                        {uniqueColumns.map((name) => (
                           <DropdownMenuItem
                             key={name}
                             onClick={() => setColumnFilter(name)}

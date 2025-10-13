@@ -1,5 +1,9 @@
 # api/main.py
 import os
+os.environ["JAVA_HOME"] = "/opt/homebrew/Cellar/openjdk@17/17.0.15/libexec/openjdk.jdk/Contents/Home"  # e.g. /usr/lib/jvm/java-11-openjdk-amd64 or $HOME/jdk/openjdk-11
+os.environ["PATH"] = f"{os.environ['JAVA_HOME']}/bin:" + os.environ["PATH"]
+os.environ["SPARK_VERSION"] = "3.5"
+
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 
@@ -8,11 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pyspark.sql import DataFrame
-
-# ===== 环境（按你给的路径）=====
-os.environ["SPARK_VERSION"] = "3.5"
-os.environ["SPARK_HOME"] = "/mnt/data-engineering-share/data/.christina/data_ingestion_monitoring/spark-3.5.6"
-os.environ["PATH"] = f"{os.environ['SPARK_HOME']}/bin:{os.environ['PATH']}"
+from pyspark.sql import SparkSession
 
 from pyspark.sql import SparkSession, functions as F
 from pydeequ.suggestions import ConstraintSuggestionRunner, DEFAULT
@@ -132,8 +132,8 @@ def _group_suggestions(
     if key_cols:
         # Uniqueness: count of distinct non-null / total count
         uniqueness = (
-            df.select(F.countDistinct(F.col(col)))
-            .first()[0] / df.count()
+            df.agg((F.countDistinct(F.col("Key_col")) / F.count(F.lit(1))).alias("uniqueness"))
+            .collect()[0]["uniqueness"]
         )
         rows.append({
             'id': 'key_cols:UniquenessConstraint(Uniqueness(List(key_cols),None,None))',
@@ -159,6 +159,17 @@ def _group_suggestions(
             'current_value': f'Completeness: {completeness}',
             'include': True
         })
+    
+    # Add row count (size) check
+    rows.append({
+        'id': '<DATASET>:SizeConstraint(Size(None,None))',
+        'column': 'DATASET',
+        'description': 'Dataset should contain at least one row',
+        'rule': 'we suggest adding a Size > 0 constraint',
+        'code': '.hasSize(lambda x: x > 0)',
+        'current_value': f'Size: {df.count()}',
+        'include': True
+    })
 
     # Schema
     schema_list = df.dtypes

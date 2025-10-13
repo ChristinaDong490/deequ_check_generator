@@ -67,6 +67,31 @@ const AddCheckDialog = ({
   const [description, setDescription] = useState("");
   const [openCombobox, setOpenCombobox] = useState(false);
 
+  const getPlaceholder = () => {
+    if (!category || !columnName) return "Select a column and category first";
+    const col = columnName || "<COLUMN_NAME>";
+    switch (category) {
+      case "Completeness":
+        return `e.g., '${col}' is not null`;
+      case "ContainedIn":
+        return `e.g., '${col}' has value range 'A', 'B', 'C'`;
+      case "Pattern":
+        return `e.g., '${col}' matches pattern '^[A-Z]{3}[0-9]{2}$'`;
+      case "Satisfies":
+        return `e.g., '${col}' has less than 2% missing values`;
+      case "DataType":
+        return `e.g., '${col}' has type Integral`;
+      case "Uniqueness":
+        return `e.g., '${col}' is unique`;
+      case "Row Count":
+        return `e.g., Row count is greater than 0`;
+      case "Numeric Ranges":
+        return `e.g., '${col}' has no negative values`;
+      default:
+        return "Enter check description";
+    }
+  };
+
   useEffect(() => {
     if (editingCheck) {
       setColumnName(editingCheck.column);
@@ -180,7 +205,7 @@ const AddCheckDialog = ({
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              placeholder="e.g., FILE_AIRBAG_CODE has value range 'N', 'Y', 'U'"
+              placeholder={getPlaceholder()}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="min-h-[100px] bg-background"

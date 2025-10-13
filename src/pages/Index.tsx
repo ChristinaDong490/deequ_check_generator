@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Database, Plus, Sparkles, Copy, Check, Play } from "lucide-react";
 import { toast } from "sonner";
 import ChecksTable from "@/components/ChecksTable";
@@ -66,8 +67,10 @@ const Index = () => {
   const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
   const [editingCheck, setEditingCheck] = useState<DataCheck | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [suggestionsProgress, setSuggestionsProgress] = useState(0);
   const [verifyResults, setVerifyResults] = useState<VerifyCodeResponse | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyProgress, setVerifyProgress] = useState(0);
 
   const handleGetSuggestions = async () => {
     if (!dataPath.trim()) {
@@ -76,6 +79,13 @@ const Index = () => {
     }
     
     setIsLoadingSuggestions(true);
+    setSuggestionsProgress(0);
+    
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      setSuggestionsProgress(prev => Math.min(prev + 10, 90));
+    }, 200);
+    
     try {
       const keyColsArray = keyCols.trim() 
         ? keyCols.split(',').map(col => col.trim()).filter(Boolean)
@@ -99,11 +109,14 @@ const Index = () => {
         setSchemaColumns(response.schema.map(s => s.name));
       }
       
+      setSuggestionsProgress(100);
       toast.success(`Loaded ${response.row_count} suggested checks`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to fetch suggestions");
     } finally {
+      clearInterval(progressInterval);
       setIsLoadingSuggestions(false);
+      setTimeout(() => setSuggestionsProgress(0), 500);
     }
   };
 
@@ -147,7 +160,13 @@ const Index = () => {
     }
 
     setIsVerifying(true);
+    setVerifyProgress(0);
     setIsVerifyDialogOpen(true);
+    
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      setVerifyProgress(prev => Math.min(prev + 8, 90));
+    }, 300);
     
     try {
       const apiRows = checks.map(check => ({
@@ -161,15 +180,19 @@ const Index = () => {
       }));
 
       const codeResponse = await generateCode(apiRows, "Error", "Data Quality Checks");
+      setVerifyProgress(50);
       const verifyResponse = await verifyCode(dataPath, codeResponse.code);
       
       setVerifyResults(verifyResponse);
+      setVerifyProgress(100);
       toast.success(`Verification complete: ${verifyResponse.success}/${verifyResponse.total} checks passed`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to verify checks");
       setIsVerifyDialogOpen(false);
     } finally {
+      clearInterval(progressInterval);
       setIsVerifying(false);
+      setTimeout(() => setVerifyProgress(0), 500);
     }
   };
 
@@ -228,6 +251,15 @@ const Index = () => {
                 </Button>
               </div>
             </div>
+            {isLoadingSuggestions && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Fetching suggestions...</span>
+                  <span className="text-muted-foreground">{suggestionsProgress}%</span>
+                </div>
+                <Progress value={suggestionsProgress} className="h-2" />
+              </div>
+            )}
           </div>
         </Card>
 
@@ -247,30 +279,44 @@ const Index = () => {
               checks={checks}
               onEdit={handleEditCheck}
               onDelete={handleDeleteCheck}
+              availableColumns={schemaColumns}
             />
           </div>
         </Card>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-4">
-          <Button
-            onClick={handlePreviewResults}
-            size="lg"
-            variant="outline"
-            className="gap-2"
-            disabled={isVerifying}
-          >
-            <Play className="h-5 w-5" />
-            {isVerifying ? "Running..." : "Preview Results"}
-          </Button>
-          <Button
-            onClick={handleGenerate}
-            size="lg"
-            className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg"
-          >
-            <Check className="h-5 w-5" />
-            Generate Code
-          </Button>
+        <div className="space-y-4">
+          {isVerifying && (
+            <Card className="p-4 shadow-lg border-border/50 backdrop-blur-sm bg-card/80">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Running verification...</span>
+                  <span className="text-muted-foreground">{verifyProgress}%</span>
+                </div>
+                <Progress value={verifyProgress} className="h-2" />
+              </div>
+            </Card>
+          )}
+          <div className="flex justify-end gap-4">
+            <Button
+              onClick={handlePreviewResults}
+              size="lg"
+              variant="outline"
+              className="gap-2"
+              disabled={isVerifying}
+            >
+              <Play className="h-5 w-5" />
+              {isVerifying ? "Running..." : "Preview Results"}
+            </Button>
+            <Button
+              onClick={handleGenerate}
+              size="lg"
+              className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg"
+            >
+              <Check className="h-5 w-5" />
+              Generate Code
+            </Button>
+          </div>
         </div>
 
         {/* Dialogs */}

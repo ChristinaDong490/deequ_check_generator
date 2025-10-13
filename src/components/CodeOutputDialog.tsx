@@ -12,7 +12,6 @@ import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
 import { generateCode } from "@/lib/api";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface CodeOutputDialogProps {
   open: boolean;
@@ -32,15 +31,14 @@ const CodeOutputDialog = ({
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      fetchGeneratedCode();
-    }
+    if (open) fetchGeneratedCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, checks]);
 
   const fetchGeneratedCode = async () => {
     setIsGenerating(true);
     try {
-      const apiRows = checks.map(check => ({
+      const apiRows = checks.map((check) => ({
         id: check.id,
         column: check.column,
         description: check.description,
@@ -49,7 +47,6 @@ const CodeOutputDialog = ({
         current_value: check.current_value,
         include: check.include ?? true,
       }));
-
       const response = await generateCode(apiRows, "Error", "Data Quality Checks");
       setGeneratedCode(response.code);
     } catch (error) {
@@ -72,103 +69,76 @@ const CodeOutputDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px] max-h-[85vh] bg-card">
-        <DialogHeader>
+      {/* 让对话框本身有最大高，内部使用overflow-y-auto容器承接滚动 */}
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] bg-card p-6 flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle>Generated Deequ Code</DialogTitle>
           <DialogDescription>
             Copy the code sections below to implement your data quality checks
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="deequ" className="w-full">
+        <Tabs defaultValue="deequ" className="w-full flex-1 flex flex-col mt-2">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="install">Installation</TabsTrigger>
             <TabsTrigger value="deequ">Deequ Code</TabsTrigger>
             <TabsTrigger value="mysql">MySQL</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="install" className="mt-4">
+          {/* 统一：仅纵向滚动，固定可视高度 */}
+          <TabsContent value="install" className="mt-4 flex-1">
             <div className="relative">
-              <ScrollArea className="h-[450px] w-full rounded-lg border">
-                <pre className="bg-muted p-4 text-sm">
+              <div className="h-[60vh] w-full rounded-lg border bg-muted overflow-y-auto overflow-x-hidden">
+                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
                   <code className="text-foreground">{installCode}</code>
                 </pre>
-              </ScrollArea>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
                 className="absolute top-2 right-2"
                 onClick={() => handleCopy(installCode)}
               >
-                {copied ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy
-                  </>
-                )}
+                {copied ? <><Check className="h-4 w-4 mr-2" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy</>}
               </Button>
             </div>
           </TabsContent>
 
-          <TabsContent value="deequ" className="mt-4">
+          <TabsContent value="deequ" className="mt-4 flex-1">
             <div className="relative">
-              <ScrollArea className="h-[450px] w-full rounded-lg border">
-                <pre className="bg-muted p-4 text-sm">
+              <div className="h-[60vh] w-full rounded-lg border bg-muted overflow-y-auto overflow-x-hidden">
+                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
                   <code className="text-foreground">
                     {isGenerating ? "Generating code..." : generatedCode}
                   </code>
                 </pre>
-              </ScrollArea>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
                 className="absolute top-2 right-2"
                 onClick={() => handleCopy(generatedCode)}
+                disabled={isGenerating}
               >
-                {copied ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy
-                  </>
-                )}
+                {copied ? <><Check className="h-4 w-4 mr-2" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy</>}
               </Button>
             </div>
           </TabsContent>
 
-          <TabsContent value="mysql" className="mt-4">
+          <TabsContent value="mysql" className="mt-4 flex-1">
             <div className="relative">
-              <ScrollArea className="h-[450px] w-full rounded-lg border">
-                <pre className="bg-muted p-4 text-sm">
+              <div className="h-[60vh] w-full rounded-lg border bg-muted overflow-y-auto overflow-x-hidden">
+                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
                   <code className="text-foreground">{mysqlCode}</code>
                 </pre>
-              </ScrollArea>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
                 className="absolute top-2 right-2"
                 onClick={() => handleCopy(mysqlCode)}
               >
-                {copied ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy
-                  </>
-                )}
+                {copied ? <><Check className="h-4 w-4 mr-2" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy</>}
               </Button>
             </div>
           </TabsContent>
