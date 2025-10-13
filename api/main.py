@@ -22,6 +22,20 @@ from pydeequ.verification import VerificationSuite, VerificationResult
 app = FastAPI(title="Deequ Suggester API")
 from starlette.middleware.base import BaseHTTPMiddleware
 
+# ===== LLM client (OpenAI-compatible) =====
+import os, re
+from typing import Tuple
+
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:8000/v1")   # e.g., vLLM/TGI/OpenAI router
+LLM_MODEL    = os.getenv("LLM_MODEL", "meta-llama/Llama-3.3-70B-Instruct")
+LLM_API_KEY  = os.getenv("LLM_API_KEY", "sk-set-me")
+
+try:
+    from openai import OpenAI  # pip install openai>=1.0
+    _llm = OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
+except Exception:
+    _llm = None
+
 async def log_requests(request, call_next):
     print(f"🔵 {request.method} {request.url}")
     response = await call_next(request)
@@ -67,6 +81,15 @@ class CheckRow(BaseModel):
     code: str
     include: bool = True
     current_value: Optional[str] = None
+
+class TranspileRequest(BaseModel):
+    rows: List[CheckRow]
+    force_all: bool = False
+    model: Optional[str] = None  # optional per-request model override
+
+class TranspileResponse(BaseModel):
+    rows: List[CheckRow]
+    errors: List[Dict[str, Any]] = []
 
 class GenerateRequest(BaseModel):
     rows: List[CheckRow]
@@ -248,6 +271,65 @@ def _run_check_code(df, final_code: Any):
 
     return total, success, failure, flat, failures
 
+def _build_prompt(desc: str) -> str:
+    return f"""
+You are an expert PyDeequ developer.
+Your task: convert a natural-language *description* of a data quality check into the corresponding **PyDeequ Check API code**.
+
+Strict rules:
+1. Always use valid PyDeequ syntax.
+2. Always return only the code (starting with a dot, no explanation).
+3. Always choose the correct function name:
+   - use `.isContainedIn(col, [values])` for value range checks.
+   - use `.isComplete(col)` for not-null checks.
+   - use `.hasPattern(col, "regex")` for pattern checks.
+   - use `.hasMin`, `.hasMax`, `.hasMean`, etc. for numeric stats.
+4. If percentage or threshold is mentioned, use a lambda condition and descriptive message.
+5. Follow this format exactly:
+
+Examples:
+'FILE_AIRBAG_CODE' has value range 'N', 'Y', 'U' -> .isContainedIn("FILE_AIRBAG_CODE", ["N","Y","U"])
+'FILE_AIRBAG_CODE' is not null -> .isComplete("FILE_AIRBAG_CODE")
+'FILE_AIRBAG_CODE' has value range 'N' for at least 94.0% of values -> .isContainedIn("FILE_AIRBAG_CODE", ["N"], lambda x: x >= 0.94, "It should be above 0.94!")
+
+Do NOT invent new functions. Only use existing PyDeequ functions.
+
+DEEQU DESCRIPTION:
+{desc}
+
+Return only the PyDeequ check code:
+""".strip()
+
+def _sanitize_llm_code(text: str) -> str:
+    """
+    Keep only the first line that starts with a dot (e.g., `.isContainedIn(...)`).
+    Strip code fences or extra text if any model adds them.
+    """
+    t = text.strip()
+    # drop code fences if present
+    if t.startswith("```"):
+        t = t.strip("`").strip()
+    # take first line starting with '.'
+    for line in t.splitlines():
+        s = line.strip()
+        if s.startswith("."):
+            return s
+    # fallback: return entire trimmed string (last resort)
+    return t
+
+def _llm_transpile(desc: str, model_override: str | None = None) -> str:
+    if not _llm:
+        raise RuntimeError("LLM client not initialized. Set LLM_BASE_URL/LLM_API_KEY or install 'openai'.")
+    prompt = _build_prompt(desc)
+    resp = _llm.chat.completions.create(
+        model=model_override or LLM_MODEL,
+        temperature=0.0,
+        max_tokens=128,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    raw = resp.choices[0].message.content or ""
+    return _sanitize_llm_code(raw)
+
 # ===== API 路由 =====
 @app.post("/suggest")
 def suggest(req: SuggestRequest):
@@ -264,6 +346,36 @@ def suggest(req: SuggestRequest):
         return {"rows": rows, "row_count": len(rows), "schema": schema}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/transpile", response_model=TranspileResponse)
+def transpile(req: TranspileRequest):
+    updated: List[CheckRow] = []
+    errors: List[Dict[str, Any]] = []
+
+    for r in req.rows:
+        # Only fill if force_all or code is empty/blank
+        needs_llm = req.force_all or (not r.code or r.code.strip() == "" or r.code.strip() == "-")
+        if not needs_llm:
+            updated.append(r)
+            continue
+
+        desc = r.description or ""
+        if not desc.strip():
+            # Nothing to convert
+            updated.append(r)
+            continue
+
+        try:
+            code = _llm_transpile(desc, model_override=req.model)
+            # minimal guard: ensure it starts with '.'
+            if not code.strip().startswith("."):
+                raise ValueError(f"LLM returned non-dot-leading code: {code!r}")
+            updated.append(CheckRow(**{**r.dict(), "code": code}))
+        except Exception as e:
+            errors.append({"id": r.id, "error": str(e)})
+            updated.append(r)  # keep original row
+
+    return TranspileResponse(rows=updated, errors=errors)
 
 @app.post("/generate")
 def generate(req: GenerateRequest):
