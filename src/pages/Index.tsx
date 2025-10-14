@@ -1,15 +1,29 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Database, Plus, Sparkles, Copy, Check, Play } from "lucide-react";
+import { Database, Plus, Sparkles, Copy, Check, Play, X } from "lucide-react";
 import { toast } from "sonner";
 import ChecksTable from "@/components/ChecksTable";
 import AddCheckDialog from "@/components/AddCheckDialog";
 import CodeOutputDialog from "@/components/CodeOutputDialog";
 import VerifyResultsDialog from "@/components/VerifyResultsDialog";
 import { suggestChecks, generateCode, verifyCode, VerifyCodeResponse } from "@/lib/api";
+import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 export interface DataCheck {
   id: string;
@@ -40,7 +54,7 @@ const getCategoryFromCode = (code?: string): string => {
 
 const Index = () => {
   const [dataPath, setDataPath] = useState("");
-  const [keyCols, setKeyCols] = useState("");
+  const [keyCols, setKeyCols] = useState<string[]>([]);
   const [schemaColumns, setSchemaColumns] = useState<string[]>([]);
   const [checks, setChecks] = useState<DataCheck[]>([
     {
@@ -71,6 +85,33 @@ const Index = () => {
   const [verifyResults, setVerifyResults] = useState<VerifyCodeResponse | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyProgress, setVerifyProgress] = useState(0);
+  const [isLoadingSchema, setIsLoadingSchema] = useState(false);
+  const [openKeyColsPopover, setOpenKeyColsPopover] = useState(false);
+
+  // Auto-fetch schema when data path changes
+  useEffect(() => {
+    const fetchSchema = async () => {
+      if (!dataPath.trim()) {
+        setSchemaColumns([]);
+        return;
+      }
+
+      setIsLoadingSchema(true);
+      try {
+        const response = await suggestChecks(dataPath, []);
+        if (response.schema) {
+          setSchemaColumns(response.schema.map(s => s.name));
+        }
+      } catch (error) {
+        console.error("Failed to fetch schema:", error);
+      } finally {
+        setIsLoadingSchema(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(fetchSchema, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [dataPath]);
 
   const handleGetSuggestions = async () => {
     if (!dataPath.trim()) {
@@ -87,11 +128,7 @@ const Index = () => {
     }, 200);
     
     try {
-      const keyColsArray = keyCols.trim() 
-        ? keyCols.split(',').map(col => col.trim()).filter(Boolean)
-        : [];
-      
-      const response = await suggestChecks(dataPath, keyColsArray);
+      const response = await suggestChecks(dataPath, keyCols);
       const newChecks = response.rows.map((row) => ({
         id: row.id,
         column: row.column,
@@ -120,14 +157,53 @@ const Index = () => {
     }
   };
 
-  const handleAddCheck = (check: Omit<DataCheck, "id">) => {
+  const handleAddCheck = async (check: Omit<DataCheck, "id">) => {
+    const checkWithId = editingCheck
+      ? { ...check, id: editingCheck.id }
+      : { ...check, id: Date.now().toString() };
+
+    // First add/update the check in the UI
     if (editingCheck) {
-      setChecks(checks.map((c) => (c.id === editingCheck.id ? { ...check, id: c.id } : c)));
-      toast.success("Check updated successfully");
+      setChecks(checks.map((c) => (c.id === editingCheck.id ? checkWithId : c)));
     } else {
-      setChecks([...checks, { ...check, id: Date.now().toString() }]);
-      toast.success("Check added successfully");
+      setChecks([...checks, checkWithId]);
     }
+
+    // Then call transpile API to generate Deequ code from description
+    try {
+      const { transpileChecks } = await import("@/lib/api");
+      const response = await transpileChecks([{
+        id: checkWithId.id,
+        column: checkWithId.column,
+        description: checkWithId.description,
+        rule: checkWithId.rule || "",
+        code: checkWithId.code || "",
+        include: checkWithId.include ?? true,
+        current_value: checkWithId.current_value,
+      }], false);
+      
+      if (response.rows.length > 0) {
+        const updatedCheck = response.rows[0];
+        setChecks((prev) =>
+          prev.map((c) =>
+            c.id === checkWithId.id
+              ? { ...c, code: updatedCheck.code }
+              : c
+          )
+        );
+      }
+
+      if (response.errors.length > 0) {
+        console.error("Transpile errors:", response.errors);
+        toast.error("Failed to generate code from description");
+      } else {
+        toast.success(editingCheck ? "Check updated with generated code" : "Check added with generated code");
+      }
+    } catch (error) {
+      console.error("Failed to transpile check:", error);
+      toast.error("Failed to generate code from description");
+    }
+    
     setEditingCheck(null);
   };
 
@@ -231,14 +307,69 @@ const Index = () => {
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
                 <label className="text-sm font-medium mb-2 block text-foreground">
-                  Key Columns (optional, comma-separated)
+                  Key Columns (optional)
                 </label>
-                <Input
-                  placeholder="e.g., primary_key,FILESUFFIX"
-                  value={keyCols}
-                  onChange={(e) => setKeyCols(e.target.value)}
-                  className="font-mono"
-                />
+                <Popover open={openKeyColsPopover} onOpenChange={setOpenKeyColsPopover}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      disabled={isLoadingSchema || schemaColumns.length === 0}
+                      className="w-full justify-start font-mono bg-background h-auto min-h-10 py-2"
+                    >
+                      {keyCols.length === 0 ? (
+                        <span className="text-muted-foreground">
+                          {isLoadingSchema ? "Loading schema..." : schemaColumns.length === 0 ? "Enter data path first" : "Select key columns"}
+                        </span>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {keyCols.map((col) => (
+                            <Badge key={col} variant="secondary" className="gap-1">
+                              {col}
+                              <X
+                                className="h-3 w-3 cursor-pointer hover:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setKeyCols(keyCols.filter(k => k !== col));
+                                }}
+                              />
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search columns..." />
+                      <CommandList>
+                        <CommandEmpty>No columns found.</CommandEmpty>
+                        <CommandGroup>
+                          {schemaColumns.map((column) => (
+                            <CommandItem
+                              key={column}
+                              value={column}
+                              onSelect={() => {
+                                setKeyCols(prev => 
+                                  prev.includes(column)
+                                    ? prev.filter(k => k !== column)
+                                    : [...prev, column]
+                                );
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  keyCols.includes(column) ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {column}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="flex items-end">
                 <Button 
