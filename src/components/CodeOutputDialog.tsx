@@ -31,6 +31,7 @@ const CodeOutputDialog = ({
   const [copied, setCopied] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [processingTime, setProcessingTime] = useState(0);
 
   useEffect(() => {
     if (open) {
@@ -40,6 +41,14 @@ const CodeOutputDialog = ({
 
   const fetchGeneratedCode = async () => {
     setIsGenerating(true);
+    setProcessingTime(0);
+    
+    // Start timer
+    const startTime = Date.now();
+    const timerInterval = setInterval(() => {
+      setProcessingTime(Math.floor((Date.now() - startTime) / 1000));
+    }, 100);
+    
     try {
       let apiRows = checks.map(check => ({
         id: check.id,
@@ -81,6 +90,7 @@ const CodeOutputDialog = ({
       toast.error(error instanceof Error ? error.message : "Failed to generate code");
       setGeneratedCode("// Error generating code");
     } finally {
+      clearInterval(timerInterval);
       setIsGenerating(false);
     }
   };
@@ -145,7 +155,9 @@ const CodeOutputDialog = ({
               <ScrollArea className="h-full w-full rounded-lg border bg-muted">
                 <pre className="p-4 text-sm whitespace-pre-wrap break-words">
                   <code className="text-foreground">
-                    {isGenerating ? "Generating code..." : generatedCode}
+                    {isGenerating 
+                      ? `Generating code... (${processingTime}s)` 
+                      : generatedCode}
                   </code>
                 </pre>
               </ScrollArea>
