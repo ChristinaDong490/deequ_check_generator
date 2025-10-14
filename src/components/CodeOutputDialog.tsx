@@ -11,7 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
-import { generateCode } from "@/lib/api";
+import { generateCode, transpileChecks } from "@/lib/api";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
 
 interface CodeOutputDialogProps {
   open: boolean;
@@ -31,14 +33,15 @@ const CodeOutputDialog = ({
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    if (open) fetchGeneratedCode();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (open) {
+      fetchGeneratedCode();
+    }
   }, [open, checks]);
 
   const fetchGeneratedCode = async () => {
     setIsGenerating(true);
     try {
-      const apiRows = checks.map((check) => ({
+      let apiRows = checks.map(check => ({
         id: check.id,
         column: check.column,
         description: check.description,
@@ -47,6 +50,31 @@ const CodeOutputDialog = ({
         current_value: check.current_value,
         include: check.include ?? true,
       }));
+
+      // Check if any checks have empty code
+      const hasEmptyCode = apiRows.some(row => !row.code || row.code.trim() === "" || row.code.trim() === "-");
+      
+      if (hasEmptyCode) {
+        // Call transpile to fill in empty codes
+        const transpileResponse = await transpileChecks(apiRows, false);
+        if (transpileResponse.rows.length > 0) {
+          // Map transpiled rows back to apiRows format
+          apiRows = transpileResponse.rows.map(row => ({
+            id: row.id,
+            column: row.column,
+            description: row.description || "",
+            rule: row.rule || "",
+            code: row.code || "",
+            current_value: row.current_value || "",
+            include: row.include ?? true,
+          }));
+        }
+        if (transpileResponse.errors.length > 0) {
+          console.error("Transpile errors:", transpileResponse.errors);
+          toast.warning("Some checks failed to generate code");
+        }
+      }
+
       const response = await generateCode(apiRows, "Error", "Data Quality Checks");
       setGeneratedCode(response.code);
     } catch (error) {
@@ -69,8 +97,7 @@ const CodeOutputDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* 让对话框本身有最大高，内部使用overflow-y-auto容器承接滚动 */}
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] bg-card p-6 flex flex-col">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] bg-card flex flex-col overflow-hidden">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle>Generated Deequ Code</DialogTitle>
           <DialogDescription>
@@ -78,41 +105,50 @@ const CodeOutputDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="deequ" className="w-full flex-1 flex flex-col mt-2">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="deequ" className="w-full flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
             <TabsTrigger value="install">Installation</TabsTrigger>
             <TabsTrigger value="deequ">Deequ Code</TabsTrigger>
             <TabsTrigger value="mysql">MySQL</TabsTrigger>
           </TabsList>
 
-          {/* 统一：仅纵向滚动，固定可视高度 */}
-          <TabsContent value="install" className="mt-4 flex-1">
-            <div className="relative">
-              <div className="h-[60vh] w-full rounded-lg border bg-muted overflow-y-auto overflow-x-hidden">
-                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
+          <TabsContent value="install" className="mt-4 flex-1 overflow-hidden flex flex-col">
+            <div className="relative flex-1 overflow-hidden">
+              <ScrollArea className="h-full w-full rounded-lg border bg-muted">
+                <pre className="p-4 text-sm whitespace-pre-wrap break-words">
                   <code className="text-foreground">{installCode}</code>
                 </pre>
-              </div>
+              </ScrollArea>
               <Button
                 size="sm"
                 variant="outline"
                 className="absolute top-2 right-2"
                 onClick={() => handleCopy(installCode)}
               >
-                {copied ? <><Check className="h-4 w-4 mr-2" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy</>}
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
               </Button>
             </div>
           </TabsContent>
 
-          <TabsContent value="deequ" className="mt-4 flex-1">
-            <div className="relative">
-              <div className="h-[60vh] w-full rounded-lg border bg-muted overflow-y-auto overflow-x-hidden">
-                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
+          <TabsContent value="deequ" className="mt-4 flex-1 overflow-hidden flex flex-col">
+            <div className="relative flex-1 overflow-hidden">
+              <ScrollArea className="h-full w-full rounded-lg border bg-muted">
+                <pre className="p-4 text-sm whitespace-pre-wrap break-words">
                   <code className="text-foreground">
                     {isGenerating ? "Generating code..." : generatedCode}
                   </code>
                 </pre>
-              </div>
+              </ScrollArea>
               <Button
                 size="sm"
                 variant="outline"
@@ -120,25 +156,45 @@ const CodeOutputDialog = ({
                 onClick={() => handleCopy(generatedCode)}
                 disabled={isGenerating}
               >
-                {copied ? <><Check className="h-4 w-4 mr-2" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy</>}
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
               </Button>
             </div>
           </TabsContent>
 
-          <TabsContent value="mysql" className="mt-4 flex-1">
-            <div className="relative">
-              <div className="h-[60vh] w-full rounded-lg border bg-muted overflow-y-auto overflow-x-hidden">
-                <pre className="p-4 text-sm font-mono whitespace-pre-wrap break-words">
+          <TabsContent value="mysql" className="mt-4 flex-1 overflow-hidden flex flex-col">
+            <div className="relative flex-1 overflow-hidden">
+              <ScrollArea className="h-full w-full rounded-lg border bg-muted">
+                <pre className="p-4 text-sm whitespace-pre-wrap break-words">
                   <code className="text-foreground">{mysqlCode}</code>
                 </pre>
-              </div>
+              </ScrollArea>
               <Button
                 size="sm"
                 variant="outline"
                 className="absolute top-2 right-2"
                 onClick={() => handleCopy(mysqlCode)}
               >
-                {copied ? <><Check className="h-4 w-4 mr-2" />Copied!</> : <><Copy className="h-4 w-4 mr-2" />Copy</>}
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
               </Button>
             </div>
           </TabsContent>
