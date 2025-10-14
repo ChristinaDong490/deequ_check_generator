@@ -113,6 +113,7 @@ const AddCheckDialog = ({
       column: columnName,
       category,
       description,
+      code: "", // Clear code to trigger transpile
     });
 
     setColumnName("");
