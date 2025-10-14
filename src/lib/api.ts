@@ -59,6 +59,20 @@ export interface VerifyCodeResponse {
   }>;
 }
 
+export interface TranspileRequest {
+  rows: SuggestRow[];
+  force_all?: boolean;
+  model?: string;
+}
+
+export interface TranspileResponse {
+  rows: SuggestRow[];
+  errors: Array<{
+    id: string;
+    error: string;
+  }>;
+}
+
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
   const response = await fetch(`${API_BASE_URL}/suggest`, {
     method: "POST",
@@ -119,6 +133,28 @@ export const verifyCode = async (
 
   if (!response.ok) {
     throw new Error(`Failed to verify code: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+export const transpileChecks = async (
+  rows: SuggestRow[],
+  forceAll: boolean = false
+): Promise<TranspileResponse> => {
+  const response = await fetch(`${API_BASE_URL}/transpile`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      rows,
+      force_all: forceAll,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to transpile checks: ${response.statusText}`);
   }
 
   return response.json();
