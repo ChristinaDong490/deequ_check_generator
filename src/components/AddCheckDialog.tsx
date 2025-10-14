@@ -109,10 +109,15 @@ const AddCheckDialog = ({
       return;
     }
 
+    // Combine column name with description if not already included
+    const finalDescription = description.toLowerCase().includes(columnName.toLowerCase())
+      ? description
+      : `${columnName} ${description}`;
+
     onSave({
       column: columnName,
       category,
-      description,
+      description: finalDescription,
       code: "", // Clear code to trigger transpile
     });
 
