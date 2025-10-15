@@ -73,6 +73,15 @@ export interface TranspileResponse {
   }>;
 }
 
+export interface SchemaRequest {
+  path: string;
+  fmt?: string;
+}
+
+export interface SchemaResponse {
+  columns: string[];
+}
+
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
   const response = await fetch(`${API_BASE_URL}/suggest`, {
     method: "POST",
@@ -155,6 +164,25 @@ export const transpileChecks = async (
 
   if (!response.ok) {
     throw new Error(`Failed to transpile checks: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+export const getSchema = async (path: string, fmt: string = "parquet"): Promise<SchemaResponse> => {
+  const response = await fetch(`${API_BASE_URL}/schema`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      path,
+      fmt,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch schema: ${response.statusText}`);
   }
 
   return response.json();
