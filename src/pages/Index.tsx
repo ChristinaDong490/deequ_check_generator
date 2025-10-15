@@ -9,7 +9,7 @@ import ChecksTable from "@/components/ChecksTable";
 import AddCheckDialog from "@/components/AddCheckDialog";
 import CodeOutputDialog from "@/components/CodeOutputDialog";
 import VerifyResultsDialog from "@/components/VerifyResultsDialog";
-import { suggestChecks, generateCode, verifyCode, VerifyCodeResponse } from "@/lib/api";
+import { suggestChecks, generateCode, verifyCode, VerifyCodeResponse, getSchema } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,
@@ -98,12 +98,11 @@ const Index = () => {
 
       setIsLoadingSchema(true);
       try {
-        const response = await suggestChecks(dataPath, []);
-        if (response.schema) {
-          setSchemaColumns(response.schema.map(s => s.name));
-        }
+        const response = await getSchema(dataPath, "parquet");
+        setSchemaColumns(response.columns);
       } catch (error) {
         console.error("Failed to fetch schema:", error);
+        toast.error("Failed to load schema from data path");
       } finally {
         setIsLoadingSchema(false);
       }
