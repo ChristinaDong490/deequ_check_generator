@@ -326,12 +326,22 @@ const Index = () => {
                             <Badge key={col} variant="secondary" className="gap-1 font-mono">
                               {col}
                               <X
-                                className="h-3 w-3 cursor-pointer hover:text-destructive"
+                                className="h-3 w-3 cursor-pointer hover:text-destructive shrink-0"
+                                onPointerDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
+                                onMouseDown={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                }}
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  setKeyCols(keyCols.filter(k => k !== col));
+                                  setKeyCols((prev) => prev.filter((k) => k !== col));
                                 }}
+                                aria-label={`Remove ${col}`}
+                                role="button"
                               />
                             </Badge>
                           ))}
