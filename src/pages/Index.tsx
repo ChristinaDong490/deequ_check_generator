@@ -317,17 +317,18 @@ const Index = () => {
                       className="w-full justify-start font-mono bg-background h-auto min-h-10 py-2"
                     >
                       {keyCols.length === 0 ? (
-                        <span className="text-muted-foreground">
+                        <span className="text-muted-foreground font-mono">
                           {isLoadingSchema ? "Loading schema..." : schemaColumns.length === 0 ? "Enter data path first" : "Select key columns"}
                         </span>
                       ) : (
                         <div className="flex flex-wrap gap-1">
                           {keyCols.map((col) => (
-                            <Badge key={col} variant="secondary" className="gap-1">
+                            <Badge key={col} variant="secondary" className="gap-1 font-mono">
                               {col}
                               <X
                                 className="h-3 w-3 cursor-pointer hover:text-destructive"
                                 onClick={(e) => {
+                                  e.preventDefault();
                                   e.stopPropagation();
                                   setKeyCols(keyCols.filter(k => k !== col));
                                 }}
