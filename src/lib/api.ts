@@ -38,11 +38,8 @@ export interface VerifyCodeRequest {
 
 export interface ConstraintResult {
   constraint: string;
-  status: string;
-  message?: string;
-  column?: string;
-  metric?: string;
-  actualValue?: string;
+  constraint_status: string;
+  current_value?: string;
 }
 
 export interface VerifyCodeResponse {
