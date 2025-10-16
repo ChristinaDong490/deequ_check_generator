@@ -3,13 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Database, Plus, Sparkles, Copy, Check, Play, X } from "lucide-react";
+import { Database, Plus, Sparkles, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import ChecksTable from "@/components/ChecksTable";
 import AddCheckDialog from "@/components/AddCheckDialog";
 import CodeOutputDialog from "@/components/CodeOutputDialog";
-import VerifyResultsDialog from "@/components/VerifyResultsDialog";
-import { suggestChecks, generateCode, verifyCode, VerifyCodeResponse, getSchema } from "@/lib/api";
+import { suggestChecks, getSchema } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,
@@ -78,13 +77,9 @@ const Index = () => {
   ]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
-  const [isVerifyDialogOpen, setIsVerifyDialogOpen] = useState(false);
   const [editingCheck, setEditingCheck] = useState<DataCheck | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [suggestionsProgress, setSuggestionsProgress] = useState(0);
-  const [verifyResults, setVerifyResults] = useState<VerifyCodeResponse | null>(null);
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [verifyProgress, setVerifyProgress] = useState(0);
   const [isLoadingSchema, setIsLoadingSchema] = useState(false);
   const [openKeyColsPopover, setOpenKeyColsPopover] = useState(false);
 
@@ -222,53 +217,6 @@ const Index = () => {
       return;
     }
     setIsCodeDialogOpen(true);
-  };
-
-  const handlePreviewResults = async () => {
-    if (!dataPath.trim()) {
-      toast.error("Please enter a data path");
-      return;
-    }
-    if (checks.length === 0) {
-      toast.error("Please add at least one check");
-      return;
-    }
-
-    setIsVerifying(true);
-    setVerifyProgress(0);
-    setIsVerifyDialogOpen(true);
-    
-    // Simulate progress
-    const progressInterval = setInterval(() => {
-      setVerifyProgress(prev => Math.min(prev + 8, 90));
-    }, 300);
-    
-    try {
-      const apiRows = checks.map(check => ({
-        id: check.id,
-        column: check.column,
-        description: check.description,
-        rule: check.rule,
-        code: check.code || "",
-        current_value: check.current_value,
-        include: check.include ?? true,
-      }));
-
-      const codeResponse = await generateCode(apiRows, "Error", "Data Quality Checks");
-      setVerifyProgress(50);
-      const verifyResponse = await verifyCode(dataPath, codeResponse.code);
-      
-      setVerifyResults(verifyResponse);
-      setVerifyProgress(100);
-      toast.success(`Verification complete: ${verifyResponse.success}/${verifyResponse.total} checks passed`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to verify checks");
-      setIsVerifyDialogOpen(false);
-    } finally {
-      clearInterval(progressInterval);
-      setIsVerifying(false);
-      setTimeout(() => setVerifyProgress(0), 500);
-    }
   };
 
   return (
@@ -426,38 +374,15 @@ const Index = () => {
         </Card>
 
         {/* Action Buttons */}
-        <div className="space-y-4">
-          {isVerifying && (
-            <Card className="p-4 shadow-lg border-border/50 backdrop-blur-sm bg-card/80">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Running verification...</span>
-                  <span className="text-muted-foreground">{verifyProgress}%</span>
-                </div>
-                <Progress value={verifyProgress} className="h-2" />
-              </div>
-            </Card>
-          )}
-          <div className="flex justify-end gap-4">
-            <Button
-              onClick={handlePreviewResults}
-              size="lg"
-              variant="outline"
-              className="gap-2"
-              disabled={isVerifying}
-            >
-              <Play className="h-5 w-5" />
-              {isVerifying ? "Running..." : "Preview Results"}
-            </Button>
-            <Button
-              onClick={handleGenerate}
-              size="lg"
-              className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg"
-            >
-              <Check className="h-5 w-5" />
-              Generate Code
-            </Button>
-          </div>
+        <div className="flex justify-end">
+          <Button
+            onClick={handleGenerate}
+            size="lg"
+            className="gap-2 bg-gradient-to-r from-primary to-accent hover:opacity-90 shadow-lg"
+          >
+            <Check className="h-5 w-5" />
+            Generate Code
+          </Button>
         </div>
 
         {/* Dialogs */}
@@ -477,13 +402,6 @@ const Index = () => {
           onOpenChange={setIsCodeDialogOpen}
           checks={checks}
           dataPath={dataPath}
-        />
-
-        <VerifyResultsDialog
-          open={isVerifyDialogOpen}
-          onOpenChange={setIsVerifyDialogOpen}
-          results={verifyResults}
-          isLoading={isVerifying}
         />
       </div>
     </div>
