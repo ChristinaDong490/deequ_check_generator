@@ -8,11 +8,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
-import { generateCode, transpileChecks } from "@/lib/api";
+import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import VerifyResultsDialog from "./VerifyResultsDialog";
 
 
 interface CodeOutputDialogProps {
@@ -32,6 +33,9 @@ const CodeOutputDialog = ({
   const [generatedCode, setGeneratedCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [processingTime, setProcessingTime] = useState(0);
+  const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
+  const [verifyResults, setVerifyResults] = useState<VerifyCodeResponse | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -102,18 +106,52 @@ const CodeOutputDialog = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handlePreviewResults = async () => {
+    if (!generatedCode || isGenerating) {
+      toast.error("Please wait for code generation to complete");
+      return;
+    }
+
+    setIsVerifying(true);
+    setVerifyDialogOpen(true);
+    setVerifyResults(null);
+
+    try {
+      const results = await verifyCode(dataPath, generatedCode);
+      setVerifyResults(results);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to verify code");
+      setVerifyDialogOpen(false);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
   const installCode = "# Installation instructions will be added later";
   const mysqlCode = "# MySQL code will be added later";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] bg-card flex flex-col overflow-hidden">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle>Generated Deequ Code</DialogTitle>
-          <DialogDescription>
-            Copy the code sections below to implement your data quality checks
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-[900px] max-h-[90vh] bg-card flex flex-col overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Generated Deequ Code</DialogTitle>
+                <DialogDescription>
+                  Copy the code sections below to implement your data quality checks
+                </DialogDescription>
+              </div>
+              <Button
+                onClick={handlePreviewResults}
+                disabled={isGenerating || !generatedCode}
+                className="gap-2"
+              >
+                <PlayCircle className="h-4 w-4" />
+                Preview Results
+              </Button>
+            </div>
+          </DialogHeader>
 
         <Tabs defaultValue="deequ" className="w-full flex-1 flex flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
@@ -213,6 +251,14 @@ const CodeOutputDialog = ({
         </Tabs>
       </DialogContent>
     </Dialog>
+
+    <VerifyResultsDialog
+      open={verifyDialogOpen}
+      onOpenChange={setVerifyDialogOpen}
+      results={verifyResults}
+      isLoading={isVerifying}
+    />
+    </>
   );
 };
 
