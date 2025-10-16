@@ -7,9 +7,11 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, Filter } from "lucide-react";
 import { VerifyCodeResponse } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -32,6 +34,8 @@ const VerifyResultsDialog = ({
   results,
   isLoading,
 }: VerifyResultsDialogProps) => {
+  const [statusFilter, setStatusFilter] = useState<"all" | "failed">("all");
+
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -58,6 +62,10 @@ const VerifyResultsDialog = ({
   const successRate = results.total > 0 
     ? ((results.success / results.total) * 100).toFixed(1) 
     : "0";
+
+  const filteredConstraints = statusFilter === "failed"
+    ? results.per_constraint.filter((c) => c.constraint_status !== "Success")
+    : results.per_constraint;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -114,6 +122,28 @@ const VerifyResultsDialog = ({
           </div>
         </div>
 
+        {/* Filter Controls */}
+        <div className="flex items-center gap-2 mb-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Filter:</span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={statusFilter === "all" ? "default" : "outline"}
+              onClick={() => setStatusFilter("all")}
+            >
+              All ({results.per_constraint.length})
+            </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === "failed" ? "destructive" : "outline"}
+              onClick={() => setStatusFilter("failed")}
+            >
+              Failed ({results.failure})
+            </Button>
+          </div>
+        </div>
+
         {/* All Constraints Table */}
         <ScrollArea className="h-[300px] rounded-lg border">
           <Table>
@@ -121,36 +151,30 @@ const VerifyResultsDialog = ({
               <TableRow>
                 <TableHead>Status</TableHead>
                 <TableHead>Constraint</TableHead>
-                <TableHead>Column</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Message</TableHead>
+                <TableHead>Current Value</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {results.per_constraint.map((constraint, index) => (
+              {filteredConstraints.map((constraint, index) => (
                 <TableRow key={index}>
                   <TableCell>
                     <Badge
-                      variant={constraint.status === "Success" ? "default" : "destructive"}
+                      variant={constraint.constraint_status === "Success" ? "default" : "destructive"}
                       className="gap-1"
                     >
-                      {constraint.status === "Success" ? (
+                      {constraint.constraint_status === "Success" ? (
                         <CheckCircle2 className="h-3 w-3" />
                       ) : (
                         <XCircle className="h-3 w-3" />
                       )}
-                      {constraint.status}
+                      {constraint.constraint_status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="font-mono text-xs max-w-[200px] truncate">
+                  <TableCell className="font-mono text-xs max-w-[400px] truncate">
                     {constraint.constraint}
                   </TableCell>
-                  <TableCell className="font-medium">{constraint.column || "-"}</TableCell>
                   <TableCell className="font-mono text-xs">
-                    {constraint.actualValue || "-"}
-                  </TableCell>
-                  <TableCell className="text-xs text-muted-foreground max-w-[250px] truncate">
-                    {constraint.message || "-"}
+                    {constraint.current_value || "-"}
                   </TableCell>
                 </TableRow>
               ))}
