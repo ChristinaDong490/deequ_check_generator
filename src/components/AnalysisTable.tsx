@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,7 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2, Code, Eye } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export interface Analysis {
@@ -20,20 +19,16 @@ export interface Analysis {
 interface AnalysisTableProps {
   analyses: Analysis[];
   onDelete: (id: string) => void;
-  onGenerateCode: (analysis: Analysis) => void;
-  onPreviewResults: (analysis: Analysis) => void;
 }
 
 const AnalysisTable = ({
   analyses,
   onDelete,
-  onGenerateCode,
-  onPreviewResults,
 }: AnalysisTableProps) => {
   if (analyses.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
-        No analysis rules added yet. Click "Analysis" to add one.
+        No analysis rules added yet. Click "Add Analysis" to add one.
       </div>
     );
   }
@@ -70,29 +65,13 @@ const AnalysisTable = ({
                 </div>
               </TableCell>
               <TableCell className="text-right">
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onGenerateCode(analysis)}
-                  >
-                    <Code className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onPreviewResults(analysis)}
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(analysis.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(analysis.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </TableCell>
             </TableRow>
           ))}
