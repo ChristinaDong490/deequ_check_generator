@@ -79,6 +79,16 @@ export interface SchemaResponse {
   columns: string[];
 }
 
+export interface AnalysisRequest {
+  path: string;
+  options: string[];
+  columns: string[];
+}
+
+export interface AnalysisResponse {
+  results: any;
+}
+
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
   const response = await fetch(`${API_BASE_URL}/suggest`, {
     method: "POST",
@@ -180,6 +190,30 @@ export const getSchema = async (path: string, fmt: string = "parquet"): Promise<
 
   if (!response.ok) {
     throw new Error(`Failed to fetch schema: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+export const runAnalysis = async (
+  path: string,
+  options: string[],
+  columns: string[]
+): Promise<AnalysisResponse> => {
+  const response = await fetch(`${API_BASE_URL}/analysis`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      path,
+      options,
+      columns,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to run analysis: ${response.statusText}`);
   }
 
   return response.json();
