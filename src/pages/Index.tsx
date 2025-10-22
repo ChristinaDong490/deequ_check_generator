@@ -3,12 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Database, Plus, Sparkles, Check, X } from "lucide-react";
+import { Database, Plus, Sparkles, Check, X, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import ChecksTable from "@/components/ChecksTable";
 import AddCheckDialog from "@/components/AddCheckDialog";
+import AddAnalysisDialog from "@/components/AddAnalysisDialog";
+import AnalysisTable, { Analysis } from "@/components/AnalysisTable";
+import AnalysisResultsDialog from "@/components/AnalysisResultsDialog";
 import CodeOutputDialog from "@/components/CodeOutputDialog";
-import { suggestChecks, getSchema } from "@/lib/api";
+import { suggestChecks, getSchema, runAnalysis } from "@/lib/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Popover,
@@ -76,9 +80,14 @@ const Index = () => {
     },
   ]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAnalysisDialogOpen, setIsAnalysisDialogOpen] = useState(false);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
   const [editingCheck, setEditingCheck] = useState<DataCheck | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [analyses, setAnalyses] = useState<Analysis[]>([]);
+  const [analysisResults, setAnalysisResults] = useState<any>(null);
+  const [isAnalysisResultsOpen, setIsAnalysisResultsOpen] = useState(false);
+  const [isRunningAnalysis, setIsRunningAnalysis] = useState(false);
   const [suggestionsProgress, setSuggestionsProgress] = useState(0);
   const [isLoadingSchema, setIsLoadingSchema] = useState(false);
   const [openKeyColsPopover, setOpenKeyColsPopover] = useState(false);
@@ -219,6 +228,51 @@ const Index = () => {
     setIsCodeDialogOpen(true);
   };
 
+  const handleAddAnalysis = (options: string[], columns: string[]) => {
+    const newAnalysis: Analysis = {
+      id: Date.now().toString(),
+      options,
+      columns,
+    };
+    setAnalyses([...analyses, newAnalysis]);
+    toast.success("Analysis rule added");
+  };
+
+  const handleDeleteAnalysis = (id: string) => {
+    setAnalyses(analyses.filter((a) => a.id !== id));
+    toast.success("Analysis rule deleted");
+  };
+
+  const handleGenerateAnalysisCode = async (analysis: Analysis) => {
+    if (!dataPath.trim()) {
+      toast.error("Please enter a data path first");
+      return;
+    }
+    // TODO: Implement code generation for analysis
+    toast.info("Analysis code generation coming soon");
+  };
+
+  const handlePreviewAnalysisResults = async (analysis: Analysis) => {
+    if (!dataPath.trim()) {
+      toast.error("Please enter a data path first");
+      return;
+    }
+
+    setIsRunningAnalysis(true);
+    setIsAnalysisResultsOpen(true);
+    try {
+      const result = await runAnalysis(dataPath, analysis.options, analysis.columns);
+      setAnalysisResults(result.results);
+      toast.success("Analysis completed");
+    } catch (error) {
+      console.error("Analysis error:", error);
+      toast.error("Failed to run analysis");
+      setAnalysisResults(null);
+    } finally {
+      setIsRunningAnalysis(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -352,24 +406,50 @@ const Index = () => {
           </div>
         </Card>
 
-        {/* Checks Table */}
+        {/* Checks and Analysis */}
         <Card className="mb-6 shadow-lg border-border/50 backdrop-blur-sm bg-card/80">
           <div className="p-6 border-b border-border/50">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold">Data Quality Checks</h2>
-              <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Add Check
-              </Button>
+              <h2 className="text-2xl font-semibold">Data Quality & Analysis</h2>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setIsAnalysisDialogOpen(true)} 
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  Analysis
+                </Button>
+                <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Check
+                </Button>
+              </div>
             </div>
           </div>
           <div className="p-6">
-            <ChecksTable
-              checks={checks}
-              onEdit={handleEditCheck}
-              onDelete={handleDeleteCheck}
-              availableColumns={schemaColumns}
-            />
+            <Tabs defaultValue="checks" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="checks">Quality Checks</TabsTrigger>
+                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+              </TabsList>
+              <TabsContent value="checks" className="space-y-4 mt-4">
+                <ChecksTable
+                  checks={checks}
+                  onEdit={handleEditCheck}
+                  onDelete={handleDeleteCheck}
+                  availableColumns={schemaColumns}
+                />
+              </TabsContent>
+              <TabsContent value="analysis" className="space-y-4 mt-4">
+                <AnalysisTable
+                  analyses={analyses}
+                  onDelete={handleDeleteAnalysis}
+                  onGenerateCode={handleGenerateAnalysisCode}
+                  onPreviewResults={handlePreviewAnalysisResults}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
         </Card>
 
@@ -395,6 +475,20 @@ const Index = () => {
           onSave={handleAddCheck}
           editingCheck={editingCheck}
           availableColumns={schemaColumns}
+        />
+
+        <AddAnalysisDialog
+          open={isAnalysisDialogOpen}
+          onOpenChange={setIsAnalysisDialogOpen}
+          onSave={handleAddAnalysis}
+          availableColumns={schemaColumns}
+        />
+
+        <AnalysisResultsDialog
+          open={isAnalysisResultsOpen}
+          onOpenChange={setIsAnalysisResultsOpen}
+          results={analysisResults}
+          isLoading={isRunningAnalysis}
         />
 
         <CodeOutputDialog
