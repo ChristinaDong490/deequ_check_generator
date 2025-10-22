@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Check, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
-import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse } from "@/lib/api";
+import { Analysis } from "./AnalysisTable";
+import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runAnalysis } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import VerifyResultsDialog from "./VerifyResultsDialog";
 
@@ -20,6 +21,7 @@ interface CodeOutputDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   checks: DataCheck[];
+  analyses: Analysis[];
   dataPath: string;
 }
 
@@ -27,6 +29,7 @@ const CodeOutputDialog = ({
   open,
   onOpenChange,
   checks,
+  analyses,
   dataPath,
 }: CodeOutputDialogProps) => {
   const [copied, setCopied] = useState(false);
@@ -36,12 +39,13 @@ const CodeOutputDialog = ({
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [verifyResults, setVerifyResults] = useState<VerifyCodeResponse | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState<any[]>([]);
 
   useEffect(() => {
     if (open) {
       fetchGeneratedCode();
     }
-  }, [open, checks]);
+  }, [open, checks, analyses]);
 
   const fetchGeneratedCode = async () => {
     setIsGenerating(true);
@@ -90,6 +94,24 @@ const CodeOutputDialog = ({
 
       const response = await generateCode(apiRows, "Error", "Data Quality Checks");
       setGeneratedCode(response.code);
+
+      // Run analysis for all analyses
+      if (analyses.length > 0) {
+        const results = await Promise.all(
+          analyses.map(async (analysis) => {
+            try {
+              const result = await runAnalysis(dataPath, analysis.options, analysis.columns);
+              return { analysis, result: result.results };
+            } catch (error) {
+              console.error("Analysis error:", error);
+              return { analysis, result: null };
+            }
+          })
+        );
+        setAnalysisResults(results);
+      } else {
+        setAnalysisResults([]);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to generate code");
       setGeneratedCode("// Error generating code");
@@ -154,9 +176,10 @@ const CodeOutputDialog = ({
           </DialogHeader>
 
         <Tabs defaultValue="deequ" className="w-full flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
+          <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
             <TabsTrigger value="install">Installation</TabsTrigger>
             <TabsTrigger value="deequ">Deequ Code</TabsTrigger>
+            <TabsTrigger value="analysis">Analysis Preview</TabsTrigger>
             <TabsTrigger value="mysql">MySQL</TabsTrigger>
           </TabsList>
 
@@ -218,6 +241,37 @@ const CodeOutputDialog = ({
                   </>
                 )}
               </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analysis" className="mt-4 flex-1 overflow-hidden flex flex-col">
+            <div className="relative flex-1 overflow-hidden">
+              <ScrollArea className="h-full w-full rounded-lg border bg-muted">
+                <div className="p-4 space-y-4">
+                  {analysisResults.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No analysis rules configured</p>
+                  ) : (
+                    analysisResults.map(({ analysis, result }, idx) => (
+                      <div key={idx} className="border-b pb-4 last:border-b-0">
+                        <div className="mb-2">
+                          <p className="text-sm font-semibold">Analysis {idx + 1}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Options: {analysis.options.join(", ")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Columns: {analysis.columns.length > 0 ? analysis.columns.join(", ") : "N/A"}
+                          </p>
+                        </div>
+                        <pre className="text-xs whitespace-pre-wrap break-words bg-background p-2 rounded">
+                          <code className="text-foreground">
+                            {result ? JSON.stringify(result, null, 2) : "Error running analysis"}
+                          </code>
+                        </pre>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </ScrollArea>
             </div>
           </TabsContent>
 
