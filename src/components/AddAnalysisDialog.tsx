@@ -84,7 +84,16 @@ const AddAnalysisDialog = ({
   };
 
   const handleSave = () => {
-    if (selectedOptions.length === 0 || selectedColumns.length === 0) {
+    if (selectedOptions.length === 0) {
+      return;
+    }
+
+    // Check if any option requires columns
+    const requiresColumns = selectedOptions.some(
+      (opt) => opt !== "stats_row_count" && opt !== "stats_column_count"
+    );
+
+    if (requiresColumns && selectedColumns.length === 0) {
       return;
     }
 
@@ -116,7 +125,7 @@ const AddAnalysisDialog = ({
         <div className="space-y-6 py-4">
           {/* Column Selection */}
           <div className="space-y-2">
-            <Label>Columns (select columns to analyze)</Label>
+            <Label>Columns (optional for row/column count)</Label>
             <Popover open={openColumnsPopover} onOpenChange={setOpenColumnsPopover}>
               <PopoverTrigger asChild>
                 <Button
@@ -284,7 +293,11 @@ const AddAnalysisDialog = ({
           </Button>
           <Button
             onClick={handleSave}
-            disabled={selectedOptions.length === 0 || selectedColumns.length === 0}
+            disabled={
+              selectedOptions.length === 0 ||
+              (selectedOptions.some((opt) => opt !== "stats_row_count" && opt !== "stats_column_count") &&
+                selectedColumns.length === 0)
+            }
           >
             Add Analysis
           </Button>
