@@ -12,7 +12,7 @@ import { Copy, Check, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
 import { Analysis } from "./AnalysisTable";
-import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runAnalysis } from "@/lib/api";
+import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runBatchAnalysis } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import VerifyResultsDialog from "./VerifyResultsDialog";
 
@@ -39,7 +39,7 @@ const CodeOutputDialog = ({
   const [verifyDialogOpen, setVerifyDialogOpen] = useState(false);
   const [verifyResults, setVerifyResults] = useState<VerifyCodeResponse | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState<any[]>([]);
+  const [analysisResults, setAnalysisResults] = useState<any>(null);
 
   useEffect(() => {
     if (open) {
@@ -95,22 +95,21 @@ const CodeOutputDialog = ({
       const response = await generateCode(apiRows, "Error", "Data Quality Checks");
       setGeneratedCode(response.code);
 
-      // Run analysis for all analyses
+      // Run batch analysis for all analyses
       if (analyses.length > 0) {
-        const results = await Promise.all(
-          analyses.map(async (analysis) => {
-            try {
-              const result = await runAnalysis(dataPath, analysis.options, analysis.columns);
-              return { analysis, result: result.results };
-            } catch (error) {
-              console.error("Analysis error:", error);
-              return { analysis, result: null };
-            }
-          })
-        );
-        setAnalysisResults(results);
+        try {
+          const batchAnalyses = analyses.map(analysis => ({
+            options: analysis.options,
+            columns: analysis.columns
+          }));
+          const result = await runBatchAnalysis(dataPath, batchAnalyses);
+          setAnalysisResults(result.results);
+        } catch (error) {
+          console.error("Batch analysis error:", error);
+          setAnalysisResults(null);
+        }
       } else {
-        setAnalysisResults([]);
+        setAnalysisResults(null);
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to generate code");
@@ -247,31 +246,35 @@ const CodeOutputDialog = ({
           <TabsContent value="analysis" className="mt-4 flex-1 overflow-hidden flex flex-col">
             <div className="relative flex-1 overflow-hidden">
               <ScrollArea className="h-full w-full rounded-lg border bg-muted">
-                <div className="p-4 space-y-4">
-                  {analysisResults.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No analysis rules configured</p>
-                  ) : (
-                    analysisResults.map(({ analysis, result }, idx) => (
-                      <div key={idx} className="border-b pb-4 last:border-b-0">
-                        <div className="mb-2">
-                          <p className="text-sm font-semibold">Analysis {idx + 1}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Options: {analysis.options.join(", ")}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Columns: {analysis.columns.length > 0 ? analysis.columns.join(", ") : "N/A"}
-                          </p>
-                        </div>
-                        <pre className="text-xs whitespace-pre-wrap break-words bg-background p-2 rounded">
-                          <code className="text-foreground">
-                            {result ? JSON.stringify(result, null, 2) : "Error running analysis"}
-                          </code>
-                        </pre>
-                      </div>
-                    ))
-                  )}
-                </div>
+                <pre className="p-4 text-sm whitespace-pre-wrap break-words">
+                  <code className="text-foreground">
+                    {!analysisResults ? (
+                      "No analysis rules configured"
+                    ) : (
+                      JSON.stringify(analysisResults, null, 2)
+                    )}
+                  </code>
+                </pre>
               </ScrollArea>
+              <Button
+                size="sm"
+                variant="outline"
+                className="absolute top-2 right-2"
+                onClick={() => handleCopy(analysisResults ? JSON.stringify(analysisResults, null, 2) : "")}
+                disabled={!analysisResults}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy
+                  </>
+                )}
+              </Button>
             </div>
           </TabsContent>
 
