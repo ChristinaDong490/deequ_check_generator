@@ -40,6 +40,7 @@ const CodeOutputDialog = ({
   const [verifyResults, setVerifyResults] = useState<VerifyCodeResponse | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
+  const [analysisCode, setAnalysisCode] = useState<string>("");
 
   useEffect(() => {
     if (open) {
@@ -104,12 +105,15 @@ const CodeOutputDialog = ({
           }));
           const result = await runBatchAnalysis(dataPath, batchAnalyses);
           setAnalysisResults(result.results);
+          setAnalysisCode(result.code || "");
         } catch (error) {
           console.error("Batch analysis error:", error);
           setAnalysisResults(null);
+          setAnalysisCode("");
         }
       } else {
         setAnalysisResults(null);
+        setAnalysisCode("");
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to generate code");
@@ -248,10 +252,10 @@ const CodeOutputDialog = ({
               <ScrollArea className="h-full w-full rounded-lg border bg-muted">
                 <pre className="p-4 text-sm whitespace-pre-wrap break-words">
                   <code className="text-foreground">
-                    {!analysisResults ? (
+                    {!analysisCode ? (
                       "No analysis rules configured"
                     ) : (
-                      JSON.stringify(analysisResults, null, 2)
+                      analysisCode
                     )}
                   </code>
                 </pre>
@@ -260,8 +264,8 @@ const CodeOutputDialog = ({
                 size="sm"
                 variant="outline"
                 className="absolute top-2 right-2"
-                onClick={() => handleCopy(analysisResults ? JSON.stringify(analysisResults, null, 2) : "")}
-                disabled={!analysisResults}
+                onClick={() => handleCopy(analysisCode)}
+                disabled={!analysisCode}
               >
                 {copied ? (
                   <>
