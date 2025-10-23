@@ -89,6 +89,18 @@ export interface AnalysisResponse {
   results: any;
 }
 
+export interface BatchAnalysisRequest {
+  path: string;
+  analyses: Array<{
+    options: string[];
+    columns: string[];
+  }>;
+}
+
+export interface BatchAnalysisResponse {
+  results: any;
+}
+
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
   const response = await fetch(`${API_BASE_URL}/suggest`, {
     method: "POST",
@@ -214,6 +226,28 @@ export const runAnalysis = async (
 
   if (!response.ok) {
     throw new Error(`Failed to run analysis: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+export const runBatchAnalysis = async (
+  path: string,
+  analyses: Array<{ options: string[]; columns: string[] }>
+): Promise<BatchAnalysisResponse> => {
+  const response = await fetch(`${API_BASE_URL}/batch_analysis`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      path,
+      analyses,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to run batch analysis: ${response.statusText}`);
   }
 
   return response.json();
