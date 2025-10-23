@@ -102,6 +102,11 @@ export interface BatchAnalysisResponse {
   code: string;
 }
 
+export interface PreviewAnalysisResponse {
+  results: any;
+  status: string;
+}
+
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
   const response = await fetch(`${API_BASE_URL}/suggest`, {
     method: "POST",
@@ -249,6 +254,29 @@ export const runBatchAnalysis = async (
 
   if (!response.ok) {
     throw new Error(`Failed to run batch analysis: ${response.statusText}`);
+  }
+
+  return response.json();
+};
+
+export const previewAnalysis = async (
+  path: string,
+  analyses: Array<{ options: string[]; columns: string[] }>
+): Promise<PreviewAnalysisResponse> => {
+  const response = await fetch(`${API_BASE_URL}/preview_analysis`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      path,
+      analyses,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || "Failed to preview analysis");
   }
 
   return response.json();
