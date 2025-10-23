@@ -99,6 +99,7 @@ export interface BatchAnalysisRequest {
 
 export interface BatchAnalysisResponse {
   results: any;
+  code: string;
 }
 
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
