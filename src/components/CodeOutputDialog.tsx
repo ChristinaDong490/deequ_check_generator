@@ -12,7 +12,7 @@ import { Copy, Check, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
 import { Analysis } from "./AnalysisTable";
-import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runBatchAnalysis } from "@/lib/api";
+import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runBatchAnalysis, previewAnalysis, PreviewAnalysisResponse } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import VerifyResultsDialog from "./VerifyResultsDialog";
 
@@ -41,6 +41,9 @@ const CodeOutputDialog = ({
   const [isVerifying, setIsVerifying] = useState(false);
   const [analysisResults, setAnalysisResults] = useState<any>(null);
   const [analysisCode, setAnalysisCode] = useState<string>("");
+  const [previewAnalysisResults, setPreviewAnalysisResults] = useState<PreviewAnalysisResponse | null>(null);
+  const [isPreviewingAnalysis, setIsPreviewingAnalysis] = useState(false);
+  const [activeTab, setActiveTab] = useState("deequ");
 
   useEffect(() => {
     if (open) {
@@ -131,7 +134,7 @@ const CodeOutputDialog = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handlePreviewResults = async () => {
+  const handlePreviewChecks = async () => {
     if (!generatedCode || isGenerating) {
       toast.error("Please wait for code generation to complete");
       return;
@@ -152,6 +155,28 @@ const CodeOutputDialog = ({
     }
   };
 
+  const handlePreviewAnalysis = async () => {
+    if (analyses.length === 0) {
+      toast.error("No analysis rules configured");
+      return;
+    }
+
+    setIsPreviewingAnalysis(true);
+    try {
+      const batchAnalyses = analyses.map(analysis => ({
+        options: analysis.options,
+        columns: analysis.columns
+      }));
+      const results = await previewAnalysis(dataPath, batchAnalyses);
+      setPreviewAnalysisResults(results);
+      toast.success("Analysis preview completed");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to preview analysis");
+    } finally {
+      setIsPreviewingAnalysis(false);
+    }
+  };
+
   const installCode = "# Installation instructions will be added later";
   const mysqlCode = "# MySQL code will be added later";
 
@@ -167,18 +192,30 @@ const CodeOutputDialog = ({
                   Copy the code sections below to implement your data quality checks
                 </DialogDescription>
               </div>
-              <Button
-                onClick={handlePreviewResults}
-                disabled={isGenerating || !generatedCode}
-                className="gap-2"
-              >
-                <PlayCircle className="h-4 w-4" />
-                Preview Results
-              </Button>
+              {activeTab === "deequ" && (
+                <Button
+                  onClick={handlePreviewChecks}
+                  disabled={isGenerating || !generatedCode}
+                  className="gap-2"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Preview Checks
+                </Button>
+              )}
+              {activeTab === "analysis" && (
+                <Button
+                  onClick={handlePreviewAnalysis}
+                  disabled={isPreviewingAnalysis || analyses.length === 0}
+                  className="gap-2"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  {isPreviewingAnalysis ? "Running..." : "Preview Analysis"}
+                </Button>
+              )}
             </div>
           </DialogHeader>
 
-        <Tabs defaultValue="deequ" className="w-full flex-1 flex flex-col overflow-hidden">
+        <Tabs defaultValue="deequ" value={activeTab} onValueChange={setActiveTab} className="w-full flex-1 flex flex-col overflow-hidden">
           <TabsList className="grid w-full grid-cols-4 flex-shrink-0">
             <TabsTrigger value="install">Installation</TabsTrigger>
             <TabsTrigger value="deequ">Deequ Code</TabsTrigger>
