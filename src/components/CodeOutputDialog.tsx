@@ -15,6 +15,7 @@ import { Analysis } from "./AnalysisTable";
 import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runBatchAnalysis, previewAnalysis, PreviewAnalysisResponse } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import VerifyResultsDialog from "./VerifyResultsDialog";
+import AnalysisResultsDialog from "./AnalysisResultsDialog";
 
 
 interface CodeOutputDialogProps {
@@ -162,6 +163,7 @@ const CodeOutputDialog = ({
     }
 
     setIsPreviewingAnalysis(true);
+    setPreviewAnalysisResults(null);
     try {
       const batchAnalyses = analyses.map(analysis => ({
         options: analysis.options,
@@ -169,7 +171,6 @@ const CodeOutputDialog = ({
       }));
       const results = await previewAnalysis(dataPath, batchAnalyses);
       setPreviewAnalysisResults(results);
-      toast.success("Analysis preview completed");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to preview analysis");
     } finally {
@@ -355,6 +356,13 @@ const CodeOutputDialog = ({
       onOpenChange={setVerifyDialogOpen}
       results={verifyResults}
       isLoading={isVerifying}
+    />
+
+    <AnalysisResultsDialog
+      open={!!previewAnalysisResults || isPreviewingAnalysis}
+      onOpenChange={(open) => !open && setPreviewAnalysisResults(null)}
+      results={previewAnalysisResults}
+      isLoading={isPreviewingAnalysis}
     />
     </>
   );
