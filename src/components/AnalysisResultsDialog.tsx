@@ -48,10 +48,13 @@ const COLORS = [
   'hsl(var(--chart-3))',
   'hsl(var(--chart-4))',
   'hsl(var(--chart-5))',
-  'hsl(var(--primary))',
-  'hsl(var(--secondary))',
-  'hsl(var(--accent))',
-  'hsl(var(--muted))',
+  'hsl(var(--chart-6))',
+  'hsl(var(--chart-7))',
+  'hsl(var(--chart-8))',
+  'hsl(var(--chart-9))',
+  'hsl(var(--chart-10))',
+  'hsl(var(--chart-11))',
+  'hsl(var(--chart-12))',
 ];
 
 const AnalysisResultsDialog = ({
@@ -149,9 +152,9 @@ const AnalysisResultsDialog = ({
                                 data={chartData(chart)}
                                 cx="50%"
                                 cy="50%"
-                                labelLine={false}
-                                label={({ name, percent }) =>
-                                  `${name}: ${(percent * 100).toFixed(0)}%`
+                                labelLine={true}
+                                label={({ percent }) =>
+                                  percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''
                                 }
                                 outerRadius={80}
                                 fill="hsl(var(--primary))"
