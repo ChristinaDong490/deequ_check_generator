@@ -106,6 +106,21 @@ const AddAnalysisDialog = ({
     onOpenChange(false);
   };
 
+  // Determine which options should be enabled
+  const hasSelectedColumns = selectedColumns.length > 0;
+  
+  const isOptionEnabled = (optionId: string) => {
+    const isCountOption = optionId === "stats_row_count" || optionId === "stats_column_count";
+    
+    // Count options only enabled when no columns selected
+    if (isCountOption) {
+      return !hasSelectedColumns;
+    }
+    
+    // Other options only enabled when columns are selected
+    return hasSelectedColumns;
+  };
+
   const groupedOptions = {
     stats: ANALYSIS_OPTIONS.filter((opt) => opt.category === "stats"),
     distribution: ANALYSIS_OPTIONS.filter((opt) => opt.category === "distribution"),
@@ -209,21 +224,28 @@ const AddAnalysisDialog = ({
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground">Statistics</h4>
               <div className="grid grid-cols-2 gap-2">
-                {groupedOptions.stats.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={option.id}
-                      checked={selectedOptions.includes(option.id)}
-                      onCheckedChange={() => toggleOption(option.id)}
-                    />
-                    <label
-                      htmlFor={option.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {option.label}
-                    </label>
-                  </div>
-                ))}
+                {groupedOptions.stats.map((option) => {
+                  const enabled = isOptionEnabled(option.id);
+                  return (
+                    <div key={option.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={option.id}
+                        checked={selectedOptions.includes(option.id)}
+                        onCheckedChange={() => enabled && toggleOption(option.id)}
+                        disabled={!enabled}
+                      />
+                      <label
+                        htmlFor={option.id}
+                        className={cn(
+                          "text-sm font-medium leading-none cursor-pointer",
+                          !enabled && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {option.label}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -231,21 +253,28 @@ const AddAnalysisDialog = ({
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground">Distribution</h4>
               <div className="grid grid-cols-2 gap-2">
-                {groupedOptions.distribution.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={option.id}
-                      checked={selectedOptions.includes(option.id)}
-                      onCheckedChange={() => toggleOption(option.id)}
-                    />
-                    <label
-                      htmlFor={option.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {option.label}
-                    </label>
-                  </div>
-                ))}
+                {groupedOptions.distribution.map((option) => {
+                  const enabled = isOptionEnabled(option.id);
+                  return (
+                    <div key={option.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={option.id}
+                        checked={selectedOptions.includes(option.id)}
+                        onCheckedChange={() => enabled && toggleOption(option.id)}
+                        disabled={!enabled}
+                      />
+                      <label
+                        htmlFor={option.id}
+                        className={cn(
+                          "text-sm font-medium leading-none cursor-pointer",
+                          !enabled && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {option.label}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
               {selectedOptions.includes("distribution_top_k") && (
                 <div className="ml-6 mt-2">
@@ -267,21 +296,28 @@ const AddAnalysisDialog = ({
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-muted-foreground">Trend</h4>
               <div className="grid grid-cols-2 gap-2">
-                {groupedOptions.trend.map((option) => (
-                  <div key={option.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={option.id}
-                      checked={selectedOptions.includes(option.id)}
-                      onCheckedChange={() => toggleOption(option.id)}
-                    />
-                    <label
-                      htmlFor={option.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {option.label}
-                    </label>
-                  </div>
-                ))}
+                {groupedOptions.trend.map((option) => {
+                  const enabled = isOptionEnabled(option.id);
+                  return (
+                    <div key={option.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={option.id}
+                        checked={selectedOptions.includes(option.id)}
+                        onCheckedChange={() => enabled && toggleOption(option.id)}
+                        disabled={!enabled}
+                      />
+                      <label
+                        htmlFor={option.id}
+                        className={cn(
+                          "text-sm font-medium leading-none cursor-pointer",
+                          !enabled && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        {option.label}
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
