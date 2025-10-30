@@ -103,8 +103,22 @@ export interface BatchAnalysisResponse {
 }
 
 export interface PreviewAnalysisResponse {
-  results: any;
   status: string;
+  metrics: {
+    columns: string[];
+    rows: any[][];
+  };
+  charts: Array<{
+    id: string;
+    title: string;
+    type: string;
+    labels: string[];
+    values: number[];
+    table: {
+      columns: string[];
+      rows: any[][];
+    };
+  }>;
 }
 
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
