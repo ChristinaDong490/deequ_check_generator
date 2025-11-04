@@ -16,6 +16,7 @@ import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runBatch
 import { ScrollArea } from "@/components/ui/scroll-area";
 import VerifyResultsDialog from "./VerifyResultsDialog";
 import AnalysisResultsDialog from "./AnalysisResultsDialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 
 interface CodeOutputDialogProps {
@@ -34,6 +35,8 @@ const CodeOutputDialog = ({
   dataPath,
 }: CodeOutputDialogProps) => {
   const [copied, setCopied] = useState(false);
+  const [copiedTerminal, setCopiedTerminal] = useState(false);
+  const [copiedPython, setCopiedPython] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [processingTime, setProcessingTime] = useState(0);
@@ -135,6 +138,20 @@ const CodeOutputDialog = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyTerminal = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedTerminal(true);
+    toast.success("Terminal instructions copied to clipboard");
+    setTimeout(() => setCopiedTerminal(false), 2000);
+  };
+
+  const handleCopyPython = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedPython(true);
+    toast.success("Python instructions copied to clipboard");
+    setTimeout(() => setCopiedPython(false), 2000);
+  };
+
   const handlePreviewChecks = async () => {
     if (!generatedCode || isGenerating) {
       toast.error("Please wait for code generation to complete");
@@ -178,7 +195,16 @@ const CodeOutputDialog = ({
     }
   };
 
-  const installCode = "# Installation instructions will be added later";
+  const terminalInstallCode = `# Terminal Installation Instructions
+pip install pydeequ pyspark pandas`;
+
+  const pythonInstallCode = `# Python Script Installation
+# Add these imports to your Python script:
+from pydeequ.checks import *
+from pydeequ.verification import *
+from pyspark.sql import SparkSession
+import pandas as pd`;
+
   const mysqlCode = "# MySQL code will be added later";
 
   return (
@@ -224,31 +250,73 @@ const CodeOutputDialog = ({
             <TabsTrigger value="mysql">MySQL</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="install" className="mt-4 flex-1 overflow-hidden flex flex-col">
-            <div className="relative flex-1 overflow-hidden">
-              <ScrollArea className="h-full w-full rounded-lg border bg-muted">
-                <pre className="p-4 text-sm whitespace-pre-wrap break-words">
-                  <code className="text-foreground">{installCode}</code>
-                </pre>
-              </ScrollArea>
-              <Button
-                size="sm"
-                variant="outline"
-                className="absolute top-2 right-2"
-                onClick={() => handleCopy(installCode)}
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy
-                  </>
-                )}
-              </Button>
+          <TabsContent value="install" className="mt-4 flex-1 overflow-auto">
+            <div className="space-y-4 pb-4">
+              {/* Terminal Installation Box */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    Installation Instructions for Terminal
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopyTerminal(terminalInstallCode)}
+                    >
+                      {copiedTerminal ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-lg border bg-muted">
+                    <pre className="p-4 text-sm overflow-x-auto">
+                      <code className="text-foreground">{terminalInstallCode}</code>
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Python Script Installation Box */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    Installation Instructions for Python Script
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopyPython(pythonInstallCode)}
+                    >
+                      {copiedPython ? (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-lg border bg-muted">
+                    <pre className="p-4 text-sm overflow-x-auto">
+                      <code className="text-foreground">{pythonInstallCode}</code>
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 
