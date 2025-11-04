@@ -58,26 +58,7 @@ const Index = () => {
   const [dataPath, setDataPath] = useState("");
   const [keyCols, setKeyCols] = useState<string[]>([]);
   const [schemaColumns, setSchemaColumns] = useState<string[]>([]);
-  const [checks, setChecks] = useState<DataCheck[]>([
-    {
-      id: "1",
-      column: "FILE_AIRBAG_CODE",
-      category: "Completeness",
-      description: "FILE_AIRBAG_CODE has value range 'N', 'Y', 'U'",
-    },
-    {
-      id: "2",
-      column: "FILE_AIRBAG_CODE",
-      category: "Uniqueness",
-      description: "FILE_AIRBAG_CODE has value range 'N' for at least 94.0% of values",
-    },
-    {
-      id: "3",
-      column: "RECYCLED_PART_AMT",
-      category: "Row Count",
-      description: "RECYCLED_PART_AMT is within expected numeric range",
-    },
-  ]);
+  const [checks, setChecks] = useState<DataCheck[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAnalysisDialogOpen, setIsAnalysisDialogOpen] = useState(false);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
