@@ -322,14 +322,14 @@ import pandas as pd`;
 
           <TabsContent value="deequ" className="mt-4 flex-1 overflow-hidden flex flex-col">
             <div className="relative flex-1 overflow-hidden">
-              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted overflow-auto">
-                <div className="min-w-max">
-                  <pre className="p-4 text-sm whitespace-pre">
-                    <code className="text-foreground">
-                      {isGenerating ? `Generating code... (${processingTime}s)` : generatedCode}
-                    </code>
-                  </pre>
-                </div>
+              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted">
+                <pre className="p-4 text-sm whitespace-pre overflow-x-auto min-w-[1000px]">
+                  <code className="text-foreground">
+                    {isGenerating 
+                      ? `Generating code... (${processingTime}s)` 
+                      : generatedCode}
+                  </code>
+                </pre>
               </ScrollArea>
               <Button
                 size="sm"
@@ -355,14 +355,16 @@ import pandas as pd`;
 
           <TabsContent value="analysis" className="mt-4 flex-1 overflow-hidden flex flex-col">
             <div className="relative flex-1 overflow-hidden">
-              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted overflow-auto">
-                <div className="min-w-max">
-                  <pre className="p-4 text-sm whitespace-pre">
-                    <code className="text-foreground">
-                      {!analysisCode ? ("No analysis rules configured") : (analysisCode)}
-                    </code>
-                  </pre>
-                </div>
+              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted">
+                <pre className="p-4 text-sm whitespace-pre overflow-x-auto min-w-[1000px]">
+                  <code className="text-foreground">
+                    {!analysisCode ? (
+                      "No analysis rules configured"
+                    ) : (
+                      analysisCode
+                    )}
+                  </code>
+                </pre>
               </ScrollArea>
               <Button
                 size="sm"
@@ -388,12 +390,10 @@ import pandas as pd`;
 
           <TabsContent value="mysql" className="mt-4 flex-1 overflow-hidden flex flex-col">
             <div className="relative flex-1 overflow-hidden">
-              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted overflow-auto">
-                <div className="min-w-max">
-                  <pre className="p-4 text-sm whitespace-pre">
-                    <code className="text-foreground">{mysqlCode}</code>
-                  </pre>
-                </div>
+              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted">
+                <pre className="p-4 text-sm whitespace-pre overflow-x-auto min-w-[1000px]">
+                  <code className="text-foreground">{mysqlCode}</code>
+                </pre>
               </ScrollArea>
               <Button
                 size="sm"
