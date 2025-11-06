@@ -358,25 +358,7 @@ import pandas as pd`;
               <div className="h-[500px] w-full rounded-lg border bg-muted overflow-auto">
                 <pre className="p-4 text-sm whitespace-pre min-w-max">
                   <code className="text-foreground">
-                    {!analysisCode ? (
-                      `# Sample Analysis Code - This is a very long line that should trigger horizontal scrolling to test if the scroll functionality works properly
-from pydeequ.analyzers import *
-from pyspark.sql import SparkSession
-
-# Initialize Spark Session
-spark = SparkSession.builder.appName("DataQualityAnalysis").getOrCreate()
-
-# Load your data - This is another very long comment line to demonstrate horizontal scrolling capabilities in the code viewer
-df = spark.read.csv("your_data.csv", header=True, inferSchema=True)
-
-# Run Analysis with multiple metrics and configurations that span across multiple lines
-analysisResult = AnalysisRunner(spark).onData(df).addAnalyzer(Size()).addAnalyzer(Completeness("column1")).addAnalyzer(Mean("column2")).addAnalyzer(Correlation("column1", "column2")).addAnalyzer(StandardDeviation("column3")).run()
-
-# Display results
-analysisResult.show()`
-                    ) : (
-                      analysisCode
-                    )}
+                    {analysisCode || "# No analysis code generated yet"}
                   </code>
                 </pre>
               </div>
