@@ -322,15 +322,15 @@ import pandas as pd`;
 
           <TabsContent value="deequ" className="mt-4 flex-1 overflow-hidden flex flex-col">
             <div className="relative flex-1 overflow-hidden">
-              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted">
-                <pre className="p-4 text-sm whitespace-pre overflow-x-auto min-w-[1000px]">
+              <div className="h-[500px] w-full rounded-lg border bg-muted overflow-auto">
+                <pre className="p-4 text-sm whitespace-pre min-w-max">
                   <code className="text-foreground">
                     {isGenerating 
                       ? `Generating code... (${processingTime}s)` 
                       : generatedCode}
                   </code>
                 </pre>
-              </ScrollArea>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
@@ -355,8 +355,8 @@ import pandas as pd`;
 
           <TabsContent value="analysis" className="mt-4 flex-1 overflow-hidden flex flex-col">
             <div className="relative flex-1 overflow-hidden">
-              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted">
-                <pre className="p-4 text-sm whitespace-pre overflow-x-auto min-w-[1000px]">
+              <div className="h-[500px] w-full rounded-lg border bg-muted overflow-auto">
+                <pre className="p-4 text-sm whitespace-pre min-w-max">
                   <code className="text-foreground">
                     {!analysisCode ? (
                       "No analysis rules configured"
@@ -365,7 +365,7 @@ import pandas as pd`;
                     )}
                   </code>
                 </pre>
-              </ScrollArea>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
@@ -390,11 +390,11 @@ import pandas as pd`;
 
           <TabsContent value="mysql" className="mt-4 flex-1 overflow-hidden flex flex-col">
             <div className="relative flex-1 overflow-hidden">
-              <ScrollArea className="h-[500px] w-full rounded-lg border bg-muted">
-                <pre className="p-4 text-sm whitespace-pre overflow-x-auto min-w-[1000px]">
+              <div className="h-[500px] w-full rounded-lg border bg-muted overflow-auto">
+                <pre className="p-4 text-sm whitespace-pre min-w-max">
                   <code className="text-foreground">{mysqlCode}</code>
                 </pre>
-              </ScrollArea>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
