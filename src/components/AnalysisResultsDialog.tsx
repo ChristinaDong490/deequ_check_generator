@@ -91,7 +91,7 @@ const AnalysisResultsDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Analysis Results</DialogTitle>
           <DialogDescription>
@@ -99,7 +99,7 @@ const AnalysisResultsDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-auto pr-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pr-4">
           <div className="space-y-6">
             {/* Metrics Table */}
             {results.metrics && results.metrics.rows.length > 0 && (
