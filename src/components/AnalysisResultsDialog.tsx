@@ -99,7 +99,7 @@ const AnalysisResultsDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
+        <div className="flex-1 overflow-auto pr-4">
           <div className="space-y-6">
             {/* Metrics Table */}
             {results.metrics && results.metrics.rows.length > 0 && (
@@ -201,7 +201,7 @@ const AnalysisResultsDialog = ({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );
