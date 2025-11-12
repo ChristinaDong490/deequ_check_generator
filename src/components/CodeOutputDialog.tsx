@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
 import { Analysis } from "./AnalysisTable";
-import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runBatchAnalysis, previewAnalysis, PreviewAnalysisResponse } from "@/lib/api";
+import { generateCode, transpileChecks, verifyCode, VerifyCodeResponse, runBatchAnalysis, previewAnalysis, PreviewAnalysisResponse, generateMySQLCode } from "@/lib/api";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import VerifyResultsDialog from "./VerifyResultsDialog";
 import AnalysisResultsDialog from "./AnalysisResultsDialog";
@@ -221,22 +221,7 @@ import pandas as pd`;
 
     setIsGeneratingMySQL(true);
     try {
-      const response = await fetch("http://localhost:8000/mysql_code", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          data_set: dataPipelineName,
-          sanitize: sanitize,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to generate MySQL code");
-      }
-
-      const data = await response.json();
+      const data = await generateMySQLCode(dataPipelineName, sanitize);
       setMysqlCode(data.code || "# No code returned");
       toast.success("MySQL code generated successfully");
     } catch (error) {
