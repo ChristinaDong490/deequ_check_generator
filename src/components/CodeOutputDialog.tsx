@@ -9,6 +9,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Copy, Check, PlayCircle } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { DataCheck } from "@/pages/Index";
 import { Analysis } from "./AnalysisTable";
@@ -37,6 +40,7 @@ const CodeOutputDialog = ({
   const [copied, setCopied] = useState(false);
   const [copiedTerminal, setCopiedTerminal] = useState(false);
   const [copiedPython, setCopiedPython] = useState(false);
+  const [copiedMySQL, setCopiedMySQL] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [processingTime, setProcessingTime] = useState(0);
@@ -48,6 +52,10 @@ const CodeOutputDialog = ({
   const [previewAnalysisResults, setPreviewAnalysisResults] = useState<PreviewAnalysisResponse | null>(null);
   const [isPreviewingAnalysis, setIsPreviewingAnalysis] = useState(false);
   const [activeTab, setActiveTab] = useState("deequ");
+  const [dataPipelineName, setDataPipelineName] = useState("");
+  const [sanitize, setSanitize] = useState<"Sanitized" | "Non-Sanitized">("Sanitized");
+  const [mysqlCode, setMysqlCode] = useState("");
+  const [isGeneratingMySQL, setIsGeneratingMySQL] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -205,7 +213,46 @@ from pydeequ.verification import *
 from pyspark.sql import SparkSession
 import pandas as pd`;
 
-  const mysqlCode = "# MySQL code will be added later";
+  const handleGenerateMySQL = async () => {
+    if (!dataPipelineName.trim()) {
+      toast.error("Please enter a Data Pipeline Name");
+      return;
+    }
+
+    setIsGeneratingMySQL(true);
+    try {
+      const response = await fetch("http://localhost:8000/mysql_code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          data_set: dataPipelineName,
+          sanitize: sanitize,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate MySQL code");
+      }
+
+      const data = await response.json();
+      setMysqlCode(data.code || "# No code returned");
+      toast.success("MySQL code generated successfully");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to generate MySQL code");
+      setMysqlCode("# Error generating MySQL code");
+    } finally {
+      setIsGeneratingMySQL(false);
+    }
+  };
+
+  const handleCopyMySQL = () => {
+    navigator.clipboard.writeText(mysqlCode);
+    setCopiedMySQL(true);
+    toast.success("MySQL code copied to clipboard");
+    setTimeout(() => setCopiedMySQL(false), 2000);
+  };
 
   return (
     <>
@@ -384,31 +431,87 @@ import pandas as pd`;
             </div>
           </TabsContent>
 
-          <TabsContent value="mysql" className="mt-4 flex-1 overflow-hidden flex flex-col">
-            <div className="relative flex-1 overflow-hidden">
-              <div className="h-[500px] w-full rounded-lg border bg-muted overflow-auto">
-                <pre className="p-4 text-sm whitespace-pre min-w-max">
-                  <code className="text-foreground">{mysqlCode}</code>
-                </pre>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="absolute top-2 right-2"
-                onClick={() => handleCopy(mysqlCode)}
-              >
-                {copied ? (
-                  <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy
-                  </>
-                )}
-              </Button>
+          <TabsContent value="mysql" className="mt-4 flex-1 overflow-auto">
+            <div className="space-y-4 pb-4">
+              {/* Input Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">MySQL Code Generator</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="data-pipeline-name" className="text-sm font-medium">
+                      Data Pipeline Name
+                    </label>
+                    <input
+                      id="data-pipeline-name"
+                      type="text"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                      placeholder="Enter data pipeline name"
+                      value={dataPipelineName}
+                      onChange={(e) => setDataPipelineName(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="sanitize" className="text-sm font-medium">
+                      Sanitize
+                    </label>
+                    <select
+                      id="sanitize"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+                      value={sanitize}
+                      onChange={(e) => setSanitize(e.target.value as "Sanitized" | "Non-Sanitized")}
+                    >
+                      <option value="Sanitized">Sanitized</option>
+                      <option value="Non-Sanitized">Non-Sanitized</option>
+                    </select>
+                  </div>
+
+                  <Button
+                    onClick={handleGenerateMySQL}
+                    disabled={isGeneratingMySQL || !dataPipelineName.trim()}
+                    className="w-full"
+                  >
+                    {isGeneratingMySQL ? "Generating..." : "Generate MySQL Code"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Output Code */}
+              {mysqlCode && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center justify-between">
+                      Generated MySQL Code
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleCopyMySQL}
+                      >
+                        {copiedMySQL ? (
+                          <>
+                            <Check className="h-4 w-4 mr-2" />
+                            Copied!
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copy
+                          </>
+                        )}
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-lg border bg-muted max-h-[400px] overflow-auto">
+                      <pre className="p-4 text-sm whitespace-pre min-w-max">
+                        <code className="text-foreground">{mysqlCode}</code>
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </TabsContent>
         </Tabs>
