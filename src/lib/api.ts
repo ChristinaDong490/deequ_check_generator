@@ -121,6 +121,15 @@ export interface PreviewAnalysisResponse {
   }>;
 }
 
+export interface MySQLCodeRequest {
+  data_set: string;
+  sanitize: "Sanitized" | "Non-Sanitized";
+}
+
+export interface MySQLCodeResponse {
+  code: string;
+}
+
 export const suggestChecks = async (path: string, keyCols?: string[]): Promise<SuggestResponse> => {
   const response = await fetch(`${API_BASE_URL}/suggest`, {
     method: "POST",
@@ -291,6 +300,28 @@ export const previewAnalysis = async (
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.detail || "Failed to preview analysis");
+  }
+
+  return response.json();
+};
+
+export const generateMySQLCode = async (
+  dataSet: string,
+  sanitize: "Sanitized" | "Non-Sanitized"
+): Promise<MySQLCodeResponse> => {
+  const response = await fetch(`${API_BASE_URL}/mysql_code`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      data_set: dataSet,
+      sanitize: sanitize,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate MySQL code: ${response.statusText}`);
   }
 
   return response.json();
