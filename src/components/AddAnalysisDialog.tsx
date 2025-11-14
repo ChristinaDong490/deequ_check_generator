@@ -40,6 +40,7 @@ const ANALYSIS_OPTIONS: AnalysisOption[] = [
   { id: "stats_mean", label: "Mean", category: "stats" },
   { id: "stats_median", label: "Median", category: "stats" },
   { id: "stats_sum", label: "Sum", category: "stats" },
+  { id: "stats_count", label: "Count", category: "stats" },
   { id: "stats_uniqueness", label: "Uniqueness", category: "stats" },
   { id: "stats_row_count", label: "Row Count", category: "stats" },
   { id: "stats_completeness", label: "Completeness", category: "stats" },
@@ -50,6 +51,7 @@ const ANALYSIS_OPTIONS: AnalysisOption[] = [
   { id: "trend_max", label: "Max", category: "trend" },
   { id: "trend_mean", label: "Mean", category: "trend" },
   { id: "trend_sum", label: "Sum", category: "trend" },
+  { id: "trend_count", label: "Count", category: "trend" },
 ];
 
 interface AddAnalysisDialogProps {
