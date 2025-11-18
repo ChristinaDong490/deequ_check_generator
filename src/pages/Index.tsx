@@ -63,6 +63,7 @@ const Index = () => {
   const [isAnalysisDialogOpen, setIsAnalysisDialogOpen] = useState(false);
   const [isCodeDialogOpen, setIsCodeDialogOpen] = useState(false);
   const [editingCheck, setEditingCheck] = useState<DataCheck | null>(null);
+  const [editingAnalysis, setEditingAnalysis] = useState<Analysis | null>(null);
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [analyses, setAnalyses] = useState<Analysis[]>([]);
   const [suggestionsProgress, setSuggestionsProgress] = useState(0);
@@ -206,13 +207,30 @@ const Index = () => {
   };
 
   const handleAddAnalysis = (options: string[], columns: string[]) => {
-    const newAnalysis: Analysis = {
-      id: Date.now().toString(),
-      options,
-      columns,
-    };
-    setAnalyses([...analyses, newAnalysis]);
-    toast.success("Analysis rule added");
+    if (editingAnalysis) {
+      // Update existing analysis
+      setAnalyses(analyses.map(a => 
+        a.id === editingAnalysis.id 
+          ? { ...a, options, columns }
+          : a
+      ));
+      toast.success("Analysis rule updated");
+      setEditingAnalysis(null);
+    } else {
+      // Add new analysis
+      const newAnalysis: Analysis = {
+        id: Date.now().toString(),
+        options,
+        columns,
+      };
+      setAnalyses([...analyses, newAnalysis]);
+      toast.success("Analysis rule added");
+    }
+  };
+
+  const handleEditAnalysis = (analysis: Analysis) => {
+    setEditingAnalysis(analysis);
+    setIsAnalysisDialogOpen(true);
   };
 
   const handleDeleteAnalysis = (id: string) => {
@@ -391,6 +409,7 @@ const Index = () => {
           <div className="p-6">
             <AnalysisTable
               analyses={analyses}
+              onEdit={handleEditAnalysis}
               onDelete={handleDeleteAnalysis}
             />
           </div>
@@ -422,9 +441,13 @@ const Index = () => {
 
         <AddAnalysisDialog
           open={isAnalysisDialogOpen}
-          onOpenChange={setIsAnalysisDialogOpen}
+          onOpenChange={(open) => {
+            setIsAnalysisDialogOpen(open);
+            if (!open) setEditingAnalysis(null);
+          }}
           onSave={handleAddAnalysis}
           availableColumns={schemaColumns}
+          editingAnalysis={editingAnalysis}
         />
 
         <CodeOutputDialog
