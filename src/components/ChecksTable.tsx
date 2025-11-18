@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Filter, ArrowUpDown } from "lucide-react";
 import { DataCheck } from "@/pages/Index";
 
@@ -42,10 +43,18 @@ const ChecksTable = ({ checks, onEdit, onDelete, availableColumns = [] }: Checks
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [columnSort, setColumnSort] = useState<"asc" | "desc" | null>(null);
   const [categorySort, setCategorySort] = useState<"asc" | "desc" | null>(null);
+  const [columnSearch, setColumnSearch] = useState("");
 
   const uniqueColumns = availableColumns.length > 0 
     ? availableColumns 
     : Array.from(new Set(checks.map((c) => c.column)));
+
+  const filteredColumns = useMemo(() => {
+    if (!columnSearch) return uniqueColumns;
+    return uniqueColumns.filter((col) =>
+      col.toLowerCase().includes(columnSearch.toLowerCase())
+    );
+  }, [uniqueColumns, columnSearch]);
 
   const filteredAndSortedChecks = useMemo(() => {
     let result = [...checks];
@@ -167,15 +176,32 @@ const ChecksTable = ({ checks, onEdit, onDelete, availableColumns = [] }: Checks
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="bg-popover max-h-[300px] overflow-y-auto">
-                        {uniqueColumns.map((name) => (
-                          <DropdownMenuItem
-                            key={name}
-                            onClick={() => setColumnFilter(name)}
-                            className="cursor-pointer"
-                          >
-                            {name}
-                          </DropdownMenuItem>
-                        ))}
+                        <div className="p-2 sticky top-0 bg-popover z-10">
+                          <Input
+                            placeholder="Search columns..."
+                            value={columnSearch}
+                            onChange={(e) => setColumnSearch(e.target.value)}
+                            className="h-8"
+                          />
+                        </div>
+                        {filteredColumns.length > 0 ? (
+                          filteredColumns.map((name) => (
+                            <DropdownMenuItem
+                              key={name}
+                              onClick={() => {
+                                setColumnFilter(name);
+                                setColumnSearch("");
+                              }}
+                              className="cursor-pointer"
+                            >
+                              {name}
+                            </DropdownMenuItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-sm text-muted-foreground text-center">
+                            No columns found
+                          </div>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <Button
