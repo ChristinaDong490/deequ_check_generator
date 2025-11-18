@@ -59,6 +59,7 @@ interface AddAnalysisDialogProps {
   onOpenChange: (open: boolean) => void;
   onSave: (options: string[], columns: string[]) => void;
   availableColumns: string[];
+  editingAnalysis?: { id: string; options: string[]; columns: string[] } | null;
 }
 
 const AddAnalysisDialog = ({
@@ -66,6 +67,7 @@ const AddAnalysisDialog = ({
   onOpenChange,
   onSave,
   availableColumns,
+  editingAnalysis,
 }: AddAnalysisDialogProps) => {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
@@ -73,12 +75,25 @@ const AddAnalysisDialog = ({
   const [topK, setTopK] = useState(5);
 
   useEffect(() => {
-    if (!open) {
+    if (open && editingAnalysis) {
+      // Parse editing data
+      const options = editingAnalysis.options.map(opt => {
+        // Check if it's a distribution_top_X pattern
+        const topKMatch = opt.match(/^distribution_top_(\d+)$/);
+        if (topKMatch) {
+          setTopK(parseInt(topKMatch[1]));
+          return "distribution_top_k";
+        }
+        return opt;
+      });
+      setSelectedOptions(options);
+      setSelectedColumns(editingAnalysis.columns);
+    } else if (!open) {
       setSelectedOptions([]);
       setSelectedColumns([]);
       setTopK(5);
     }
-  }, [open]);
+  }, [open, editingAnalysis]);
 
   const toggleOption = (optionId: string) => {
     setSelectedOptions((prev) =>
@@ -136,7 +151,7 @@ const AddAnalysisDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] bg-card max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Analysis</DialogTitle>
+          <DialogTitle>{editingAnalysis ? "Edit Analysis" : "Add Analysis"}</DialogTitle>
           <DialogDescription>
             Select analysis options and columns to analyze
           </DialogDescription>
