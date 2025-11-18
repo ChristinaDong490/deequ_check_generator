@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export interface Analysis {
@@ -18,11 +18,13 @@ export interface Analysis {
 
 interface AnalysisTableProps {
   analyses: Analysis[];
+  onEdit: (analysis: Analysis) => void;
   onDelete: (id: string) => void;
 }
 
 const AnalysisTable = ({
   analyses,
+  onEdit,
   onDelete,
 }: AnalysisTableProps) => {
   if (analyses.length === 0) {
@@ -65,13 +67,22 @@ const AnalysisTable = ({
                 </div>
               </TableCell>
               <TableCell className="text-right">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onDelete(analysis.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(analysis)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDelete(analysis.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}
